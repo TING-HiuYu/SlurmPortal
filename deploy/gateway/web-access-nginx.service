@@ -1,0 +1,25 @@
+[Unit]
+Description=Slurm Portal web-access HTTPS front end (nginx)
+Wants=network-online.target
+After=network-online.target web-access-gateway.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/nginx -t -c /etc/go-ldap-admin/web-access-gateway/nginx.conf
+ExecStart=/usr/sbin/nginx -c /etc/go-ldap-admin/web-access-gateway/nginx.conf -g "daemon off;"
+ExecReload=/usr/sbin/nginx -c /etc/go-ldap-admin/web-access-gateway/nginx.conf -s reload
+KillSignal=SIGQUIT
+TimeoutStopSec=30s
+Restart=on-failure
+RestartSec=5s
+RuntimeDirectory=go-ldap-admin-web-access-nginx
+RuntimeDirectoryMode=0755
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/nginx /var/lib/nginx
+
+[Install]
+WantedBy=multi-user.target

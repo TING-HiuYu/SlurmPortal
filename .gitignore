@@ -1,0 +1,28 @@
+# Build output
+*.test
+*.out
+bin/
+dist/
+deploy/worker/dist/
+web/node_modules/
+
+# Local tooling and state
+.idea/
+.vscode/
+.wrangler/
+.worktrees/
+.token
+tmp/
+__pycache__/
+*.pyc
+
+# Compose deployments: generated secrets, local settings and data
+deploy/compose/*/.env
+deploy/compose/*/data/
+deploy/compose/*/secrets/
+deploy/compose/slave/slave.yml
+
+# Your own Worker configuration (copy wrangler.example.toml); it names your account's resources.
+deploy/worker/wrangler.toml
+deploy/worker/wrangler.*.toml
+!deploy/worker/wrangler.example.toml

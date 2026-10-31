@@ -1,0 +1,28 @@
+# The slave's trigger list (set trigger-file in slave.yml to this file, mode 0600).
+version: 1
+triggers:
+  # Slave on the host (systemd): run slurm_trigger.py through a narrow sudo rule (see README.md).
+  - id: slurm-account
+    enabled: true
+    events: [user.created, user.updated, user.deleted, membership.added, membership.removed]
+    command:
+      - /usr/bin/sudo
+      - -n
+      - /usr/local/libexec/go-ldap-admin/slurm_trigger.py
+      - --config
+      - /etc/go-ldap-admin/slurm-trigger.json
+      - "%DATA%"
+    timeoutSeconds: 120
+
+  # Slave in a container: hand the event to the host over SSH with the host bridge instead.
+  - id: slurm-account-via-host
+    enabled: false
+    currentUserOnly: true
+    events: [user.created, user.updated, user.deleted, membership.added, membership.removed]
+    command:
+      - /usr/local/bin/slurm-portal-host-bridge
+      - client
+      - --config
+      - /etc/slurm-portal/secrets/host-bridge.json
+      - "%DATA%"
+    timeoutSeconds: 290

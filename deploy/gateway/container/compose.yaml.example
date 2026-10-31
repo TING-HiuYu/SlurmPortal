@@ -1,0 +1,48 @@
+services:
+  gateway:
+    image: ${GATEWAY_IMAGE:?set a reviewed versioned image or immutable digest}
+    platform: linux/amd64
+    # Linux NAS host namespace: no ports/networks mappings and no Docker socket.
+    network_mode: host
+    user: "${GATEWAY_UID:-19033}:${GATEWAY_GID:-19033}"
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: 1.0
+    restart: unless-stopped
+    stop_grace_period: 45s
+    environment:
+      GATEWAY_TLS_HOST: ${GATEWAY_TLS_HOST:?set the gateway HTTPS certificate hostname}
+      GATEWAY_PUBLIC_PORT: ${GATEWAY_PUBLIC_PORT:-19933}
+    tmpfs:
+      - /run/web-access-gateway:rw,noexec,nosuid,nodev,size=16m,uid=${GATEWAY_UID:-19033},gid=${GATEWAY_GID:-19033},mode=0700
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    volumes:
+      # Contains web-access-gateway.yaml and web-access-gateway/nginx.conf only.
+      - type: bind
+        source: ${GATEWAY_CONFIG_DIR:?set existing private configuration directory}
+        target: /etc/go-ldap-admin
+        read_only: true
+        bind: {create_host_path: false}
+      # This site's own HTTPS and mTLS leaf files; never reuse another site's private keys.
+      - type: bind
+        source: ${GATEWAY_TLS_DIR:?set existing gateway leaf TLS and mTLS directory}
+        target: /etc/go-ldap-admin-web-access-tls
+        read_only: true
+        bind: {create_host_path: false}
+      # Mount the public bundle parent; current symlink rotations remain visible.
+      - type: bind
+        source: ${GATEWAY_TRUST_DIR:?set verified slave-published public trust directory}
+        target: /etc/go-ldap-admin-trust
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${GATEWAY_STATE_DIR:?set existing gateway-only local ext4 state directory}
+        target: /var/lib/go-ldap-admin-web-access-gateway
+        bind: {create_host_path: false}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}

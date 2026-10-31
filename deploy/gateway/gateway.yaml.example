@@ -1,0 +1,68 @@
+# Standalone example only: installing this file does not start a service.
+# Replace every REPLACE_* value using independently verified public keys.
+# Install the completed file as 0600 (or 0400), readable by the gateway user.
+gateway_id: cluster1-login
+instance_id: cluster1-login
+cluster_id: cluster1
+# Public Nginx TLS19933 -> verified HTTPS upstream on this loopback listener.
+# See deploy/gateway/nginx.conf.example; callback19935 is not proxied.
+listen: "127.0.0.1:19934"
+tls_certificate: /etc/go-ldap-admin/web-access-gateway/https.crt.pem
+tls_key: /etc/go-ldap-admin/web-access-gateway/https.key.pem
+
+# The runner lives on this same source login node; never expose this port.
+callback_listen: "127.0.0.1:19935"
+allowed_origins:
+  - https://portal.example.org
+
+# Ed25519 verification public keys only (PKIX PEM or unpadded base64url).
+# Key IDs must match the master's dedicated gateway ticket signer.
+ticket_public_keys:
+  web-access-1: REPLACE_WITH_ED25519_TICKET_PUBLIC_KEY
+
+# The slave-published bundle (the same file sshd uses for TrustedUserCAKeys).
+# The publisher explicitly exposes only this public bundle and its SSH directory.
+# Legitimate current/versioned symlinks are supported; no CA private key is here.
+user_ca_keys_file: /etc/go-ldap-admin-trust/current/ssh/trusted-user-ca-keys.pub
+
+# Reloaded for every new signer; explicit file overrides legacy inline CA keys.
+# Public bundle must not be group/world writable. No CA private key is present.
+# Signed KeyId: web-access/<cluster>/<purpose>/user:<DBid>/<lowercase-hex-serial>.
+# Ordinary access is shared by SSH, SFTP and rsync. Only session:create is needed to
+# bootstrap; terminal/sftp/transfer permissions are checked on their own APIs.
+# Destination credentials are ordinary access certificates bound to that cluster/user.
+# Entire shared tree, not /home/<username>. All reads still use the authenticated
+# user's SSH/SFTP OS permissions; the Go daemon never directly reads this tree.
+# Symlinks are accepted only when their resolved target remains inside file_root.
+file_root: /home
+
+clusters:
+  - id: cluster1
+    # Source loopback follows the user environment (9933); verify the effective
+    # local SSH port during installation and align master ssh_local_port.
+    ssh_address: "127.0.0.1:9933"
+  - id: destination
+    # Fill from the target's public master cluster.address + ssh_port.
+    ssh_address: "target-login.example.org:9933"
+
+# Source runner requires rsync >=3.2.4 (uses -avz, precise stats, modern default
+# argument escaping; no secluded/protect/old-args, checksum, or TCP buffer flags).
+# The target uses ordinary temporary SSH access and its existing rsync binary.
+# No receiver helper, special certificate or user shell change is required.
+
+state_directory: /var/lib/go-ldap-admin-web-access-gateway
+
+# Machine sync origin; this is distinct from the browser Origin above.
+# Master accepts machine APIs only on SYNC_HOSTNAME (no path/trailing /).
+# The origin and allowlisted machine mTLS pair are required together. For a
+# deliberately disconnected local setup, leave all three empty as a group.
+# mTLS host that serves /sync/v2/web-access/* for this gateway certificate.
+master_origin: https://sync.portal.example.org
+master_client_certificate: /etc/go-ldap-admin/web-access-gateway/master-client.crt.pem
+master_client_key: /etc/go-ldap-admin/web-access-gateway/master-client.key.pem
+
+max_sessions: 128
+max_sessions_per_user: 4
+session_idle_seconds: 1800
+max_download_bytes: 1099511627776
+max_transfers: 128

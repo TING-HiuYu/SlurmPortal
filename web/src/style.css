@@ -1,0 +1,111 @@
+/* Console theme tokens, carried over from the v1 portal (go-ldap-admin-ui console.scss). antd gets
+   the same values through ConfigProvider (Root.jsx); these drive the custom-drawn parts. */
+:root {
+  --console-bg: #f5f7fb;
+  --console-surface: #ffffff;
+  --console-surface-soft: #f3f5fa;
+  --console-surface-hover: #eef2fa;
+  --console-border: #e6ebf2;
+  --console-border-soft: #edf0f5;
+  --console-text: #1c2940;
+  --console-text-secondary: #526079;
+  --console-muted: #7d8ba1;
+  --console-placeholder: #929fb4;
+  --console-accent: #3f63e9;
+  --console-accent-soft: #eef2ff;
+  --console-primary: #3f63e9;
+  --console-success: #16896d;
+  --console-success-soft: #eaf6f1;
+  --console-warning: #a97221;
+  --console-warning-soft: #fcf3e6;
+  --console-danger: #d14b59;
+  --console-danger-soft: #fceef0;
+  --console-violet: #8b6dd9;
+  --console-violet-soft: #f3effc;
+  --console-teal: #1b9d88;
+  --console-teal-soft: #e8f6f3;
+  --console-amber: #ce8b40;
+  --console-amber-soft: #fbf2e8;
+  --console-chart-grid: #e6ebf3;
+  --console-chart-1: #3f63e9;
+  --console-chart-2: #1b9d88;
+  --console-shadow: 0 8px 30px rgba(21, 34, 57, 0.12);
+  --console-radius: 12px;
+  --console-sidebar: 240px;
+  color-scheme: light;
+
+}
+
+html.dark {
+  --console-bg: #10151e;
+  --console-surface: #19212d;
+  --console-surface-soft: #202a39;
+  --console-surface-hover: #29364a;
+  --console-border: #344158;
+  --console-border-soft: #29364a;
+  --console-text: #e4eaf4;
+  --console-text-secondary: #b4c1d5;
+  --console-muted: #9aaac1;
+  --console-placeholder: #7e90ad;
+  --console-accent: #96afff;
+  --console-accent-soft: #29395e;
+  --console-primary: #4c6bd5;
+  --console-success: #65d4b2;
+  --console-success-soft: #1c3a35;
+  --console-warning: #efbd73;
+  --console-warning-soft: #403527;
+  --console-danger: #f78b99;
+  --console-danger-soft: #432b36;
+  --console-violet: #b6a0ef;
+  --console-violet-soft: #352f4b;
+  --console-teal: #66cdb9;
+  --console-teal-soft: #1b3a37;
+  --console-amber: #edb778;
+  --console-amber-soft: #3f3324;
+  --console-chart-grid: #344158;
+  --console-chart-1: #7f97f0;
+  --console-chart-2: #4fb9a5;
+  --console-shadow: 0 8px 30px rgba(0, 0, 0, 0.32);
+  color-scheme: dark;
+
+}
+
+html, body, #app { height: 100%; margin: 0; }
+body { background: var(--console-bg); color: var(--console-text); -webkit-font-smoothing: antialiased; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--console-accent); outline-offset: 3px; }
+
+.page-loading { display: grid; place-items: center; min-height: 50vh; }
+.console-page { max-width: 1600px; width: 100%; margin: 0 auto; padding: 30px 32px 40px; box-sizing: border-box; }
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+.page-head h1 { margin: 0; font-size: 25px; line-height: 1.4; font-weight: 650; letter-spacing: -0.6px; color: var(--console-text); }
+.page-head p { margin: 6px 0 0; color: var(--console-muted); font-size: 13px; }
+.surface { margin-bottom: 22px; }
+.muted { color: var(--console-muted); font-size: 12px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 22px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.secret { white-space: pre-wrap; word-break: break-all; background: var(--console-surface-soft); border: 1px solid var(--console-border-soft); padding: 10px 12px; border-radius: 8px; font-size: 12px; max-height: 240px; overflow: auto; margin: 0; }
+.form-section { margin: 4px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--console-border); font-size: 13px; font-weight: 600; color: var(--console-text); }
+.section-title { margin: 0 0 6px; font-size: 15px; font-weight: 650; color: var(--console-text); }
+.section-desc { margin: 0 0 18px; font-size: 12px; color: var(--console-muted); }
+.list-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 34px; margin: 0 0 12px; font-size: 13px; color: var(--console-text-secondary); }
+.filters .ant-form-item { margin-bottom: 14px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--console-placeholder); vertical-align: middle; }
+.dot.success, .dot.ok { background: var(--console-success); } .dot.warning, .dot.stale { background: var(--console-warning); }
+.dot.error, .dot.danger { background: var(--console-danger); } .dot.processing, .dot.primary { background: var(--console-accent); }
+.chip { width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; display: inline-grid; place-items: center; font-size: 16px; }
+.chip.blue { background: var(--console-accent-soft); color: var(--console-accent); }
+.chip.teal { background: var(--console-teal-soft); color: var(--console-teal); }
+.chip.violet { background: var(--console-violet-soft); color: var(--console-violet); }
+.chip.amber { background: var(--console-amber-soft); color: var(--console-amber); }
+.order { width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; display: inline-grid; place-items: center; background: var(--console-surface-soft); border: 1px solid var(--console-border-soft); color: var(--console-muted); font-size: 11px; }
+/* Floating cards (chart tooltips) sit outside any layout and never take the pointer. */
+.float-card { position: fixed; z-index: 2000; pointer-events: none; overflow: hidden; padding: 12px 14px; border: 1px solid var(--console-border); border-radius: 10px; background: var(--console-surface); box-shadow: var(--console-shadow); font-size: 12px; color: var(--console-text-secondary); }
+.ant-card { box-shadow: none; }
+
+@media (max-width: 1100px) { .console-page { padding: 25px 22px 32px; } }
+@media (max-width: 767px) {
+  .console-page { padding: 22px 16px 28px; }
+  .page-head h1 { font-size: 22px; }
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+}

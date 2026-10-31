@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go (vet, test, wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt and vet
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+      - name: Test
+        run: go test -race -p 1 -count=1 ./...
+      - name: Build the Worker module for WebAssembly
+        run: GOOS=js GOARCH=wasm go build ./internal/... ./migrations
+
+  web:
+    name: Web app and Worker bridge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Worker bridge tests
+        run: node --test deploy/worker/*.test.mjs
+      - name: Web tests and build
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npx vitest run
+          npx vite build --logLevel warn
+
+  scripts:
+    name: Cluster scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Python unit tests
+        # The TLS deploy script refuses group-writable targets, so its fixtures need umask 022.
+        run: |
+          umask 022
+          for t in $(git ls-files 'deploy/*test_*.py'); do
+            (cd "$(dirname "$t")" && python -m unittest -q "$(basename "$t" .py)") || exit 1
+          done
+
+  compose:
+    name: Compose files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Master and slave compose files parse with the example settings
+        run: |
+          cd deploy/compose/master && cp .env.example .env && docker compose config -q
+          cd ../slave && cp .env.example .env && docker compose config -q
+          docker compose --profile demo config -q

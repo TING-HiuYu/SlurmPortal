@@ -1,0 +1,13 @@
+[Unit]
+Description=Validate and renew the Web Access public HTTPS certificate
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ExecStart=/usr/bin/python3 /usr/local/libexec/go-ldap-admin/acme/renew.py /etc/go-ldap-admin/web-access-acme/site.json renew
+TimeoutStartSec=12min

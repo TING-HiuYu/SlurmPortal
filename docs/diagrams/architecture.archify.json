@@ -1,0 +1,603 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "Slurm Portal: system overview",
+  "output": ".archify/architecture-slurm-portal-20261031-210000/slurm-portal.html",
+  "quality_profile": "showcase",
+  "locale": "en",
+  "repository": {
+   "url": "https://github.com/TING-HiuYu/SlurmPortal.git",
+   "provider": "github",
+   "link_mode": "local-only",
+   "revision": "3033451e37e3f029ca2498ab572e89fa2c4be16f"
+  }
+ },
+ "components": [
+  {
+   "id": "browser",
+   "type": "external",
+   "label": "Browser",
+   "sublabel": "users and admins",
+   "pos": [
+    40,
+    250
+   ],
+   "size": [
+    130,
+    60
+   ],
+   "sources": [
+    {
+     "path": "web/src/session.js",
+     "line": 59,
+     "end_line": 62,
+     "label": "password sign-in"
+    }
+   ]
+  },
+  {
+   "id": "access",
+   "type": "security",
+   "label": "HTTPS front door",
+   "sublabel": "Access / Caddy",
+   "pos": [
+    250,
+    250
+   ],
+   "size": [
+    160,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/plugins/cfaccess/cfaccess.go",
+     "line": 292,
+     "end_line": 303,
+     "label": "Access sign-in"
+    },
+    {
+     "path": "deploy/compose/master/Caddyfile",
+     "line": 1,
+     "end_line": 15,
+     "label": "Caddy"
+    }
+   ]
+  },
+  {
+   "id": "assets",
+   "type": "frontend",
+   "label": "Web app",
+   "sublabel": "React UI, served with the API",
+   "pos": [
+    480,
+    90
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "deploy/worker/wrangler.example.toml",
+     "line": 14,
+     "end_line": 18,
+     "label": "Worker static assets"
+    },
+    {
+     "path": "cmd/server/main.go",
+     "line": 170,
+     "end_line": 200,
+     "label": "native static serving"
+    }
+   ]
+  },
+  {
+   "id": "master",
+   "type": "backend",
+   "label": "Master",
+   "sublabel": "Go: Worker (Wasm) or container",
+   "pos": [
+    480,
+    250
+   ],
+   "size": [
+    170,
+    62
+   ],
+   "sources": [
+    {
+     "path": "cmd/worker/main.go",
+     "line": 27,
+     "end_line": 40,
+     "label": "Worker entry"
+    },
+    {
+     "path": "cmd/server/main.go",
+     "line": 39,
+     "end_line": 75,
+     "label": "native server"
+    },
+    {
+     "path": "internal/app/app.go",
+     "line": 53,
+     "end_line": 125,
+     "label": "pipeline and plugins"
+    }
+   ]
+  },
+  {
+   "id": "d1",
+   "type": "database",
+   "label": "Database",
+   "sublabel": "D1 / SQLite",
+   "pos": [
+    480,
+    420
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/store/d1/d1.go",
+     "line": 56,
+     "end_line": 61
+    },
+    {
+     "path": "internal/store/sql.go",
+     "line": 1,
+     "end_line": 40
+    }
+   ]
+  },
+  {
+   "id": "mail",
+   "type": "external",
+   "label": "Mail providers",
+   "sublabel": "SMTP or REST",
+   "pos": [
+    250,
+    610
+   ],
+   "size": [
+    160,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/mail/hub.go",
+     "line": 209,
+     "end_line": 231,
+     "label": "hub send"
+    },
+    {
+     "path": "deploy/worker/smtp-bridge.js",
+     "line": 111,
+     "end_line": 111
+    }
+   ]
+  },
+  {
+   "id": "r2",
+   "type": "database",
+   "label": "Status store",
+   "sublabel": "R2 / S3 (RustFS)",
+   "pos": [
+    720,
+    90
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/plugins/currentstatus/plugin.go",
+     "line": 82,
+     "end_line": 82,
+     "label": "slave ingest"
+    },
+    {
+     "path": "internal/plugins/currentstatus/plugin.go",
+     "line": 263,
+     "end_line": 263,
+     "label": "presigned read link"
+    }
+   ]
+  },
+  {
+   "id": "sync",
+   "type": "security",
+   "label": "Sync endpoint",
+   "sublabel": "mutual TLS, /sync/* only",
+   "pos": [
+    720,
+    250
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "deploy/worker/edge.js",
+     "line": 10,
+     "end_line": 19,
+     "label": "Worker host split"
+    },
+    {
+     "path": "cmd/server/main.go",
+     "line": 128,
+     "end_line": 150,
+     "label": "native sync listener"
+    }
+   ]
+  },
+  {
+   "id": "dns",
+   "type": "cloud",
+   "label": "Snapshot hash",
+   "sublabel": "DNS TXT / HTTPS",
+   "pos": [
+    720,
+    420
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/replication/main.go",
+     "line": 58,
+     "end_line": 83,
+     "label": "DNSPublisher"
+    },
+    {
+     "path": "internal/slave/replicator.go",
+     "line": 133,
+     "end_line": 165,
+     "label": "hash source"
+    }
+   ]
+  },
+  {
+   "id": "hook",
+   "type": "backend",
+   "label": "Lifecycle hook",
+   "sublabel": "Slurm prolog / epilog",
+   "pos": [
+    1000,
+    90
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "cmd/slurm-lifecycle-hook/main.go",
+     "line": 1,
+     "end_line": 45
+    }
+   ]
+  },
+  {
+   "id": "slave",
+   "type": "backend",
+   "label": "Slave",
+   "sublabel": "one container per cluster",
+   "pos": [
+    1000,
+    250
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "cmd/slave/main.go",
+     "line": 27,
+     "end_line": 112,
+     "label": "reporters and lifecycle"
+    },
+    {
+     "path": "internal/slave/replicator.go",
+     "line": 139,
+     "end_line": 139,
+     "label": "polls the hash"
+    }
+   ]
+  },
+  {
+   "id": "triggers",
+   "type": "backend",
+   "label": "Triggers",
+   "sublabel": "slurm_trigger.py",
+   "pos": [
+    1275,
+    250
+   ],
+   "size": [
+    160,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/slave/triggers.go",
+     "line": 360,
+     "end_line": 392,
+     "label": "queue dispatch"
+    },
+    {
+     "path": "deploy/triggers/slurm_trigger.py",
+     "line": 1,
+     "end_line": 7
+    }
+   ]
+  },
+  {
+   "id": "ldap",
+   "type": "database",
+   "label": "OpenLDAP",
+   "sublabel": "accounts and groups",
+   "pos": [
+    1000,
+    420
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/slave/ldap.go",
+     "line": 52,
+     "end_line": 163
+    }
+   ]
+  },
+  {
+   "id": "trust",
+   "type": "database",
+   "label": "SSH trust files",
+   "sublabel": "CA keys and KRL",
+   "pos": [
+    1275,
+    420
+   ],
+   "size": [
+    160,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/slave/trust.go",
+     "line": 27,
+     "end_line": 40,
+     "label": "PublishTrust"
+    }
+   ]
+  },
+  {
+   "id": "gateway",
+   "type": "backend",
+   "label": "Gateway",
+   "sublabel": "terminal, files, rsync",
+   "pos": [
+    1000,
+    580
+   ],
+   "size": [
+    170,
+    60
+   ],
+   "sources": [
+    {
+     "path": "cmd/gateway/main.go",
+     "line": 154,
+     "end_line": 154
+    },
+    {
+     "path": "internal/gateway/gateway.go",
+     "line": 397,
+     "end_line": 423,
+     "label": "certificate signer, SSH dial"
+    }
+   ]
+  },
+  {
+   "id": "login",
+   "type": "external",
+   "label": "Login node sshd",
+   "sublabel": "trusts the CA files",
+   "pos": [
+    1275,
+    580
+   ],
+   "size": [
+    160,
+    60
+   ],
+   "sources": [
+    {
+     "path": "internal/gateway/gateway.go",
+     "line": 423,
+     "end_line": 423,
+     "label": "SSH client connection"
+    }
+   ]
+  }
+ ],
+ "boundaries": [
+  {
+   "kind": "region",
+   "label": "Master (Cloudflare or containers)",
+   "wraps": [
+    "access",
+    "assets",
+    "master",
+    "d1",
+    "r2",
+    "sync",
+    "dns"
+   ],
+   "pad": 20
+  },
+  {
+   "kind": "region",
+   "label": "Each cluster",
+   "wraps": [
+    "hook",
+    "slave",
+    "triggers",
+    "ldap",
+    "trust",
+    "gateway",
+    "login"
+   ],
+   "pad": 20
+  }
+ ],
+ "connections": [
+  {
+   "from": "browser",
+   "to": "access",
+   "label": "HTTPS",
+   "variant": "emphasis"
+  },
+  {
+   "from": "access",
+   "to": "master",
+   "label": "/api/*",
+   "variant": "emphasis"
+  },
+  {
+   "from": "browser",
+   "to": "assets",
+   "label": "load UI"
+  },
+  {
+   "from": "master",
+   "to": "d1",
+   "label": "SQL"
+  },
+  {
+   "from": "master",
+   "to": "mail",
+   "label": "send mail",
+   "variant": "dashed"
+  },
+  {
+   "from": "master",
+   "to": "r2",
+   "label": "write status"
+  },
+  {
+   "from": "master",
+   "to": "dns",
+   "label": "publish hash",
+   "variant": "dashed"
+  },
+  {
+   "from": "sync",
+   "to": "master",
+   "label": "peer calls",
+   "variant": "security"
+  },
+  {
+   "from": "slave",
+   "to": "sync",
+   "label": "snapshot, reports",
+   "variant": "security"
+  },
+  {
+   "from": "slave",
+   "to": "dns",
+   "label": "poll hash",
+   "variant": "dashed"
+  },
+  {
+   "from": "hook",
+   "to": "slave",
+   "label": "job events"
+  },
+  {
+   "from": "slave",
+   "to": "triggers",
+   "label": "queue",
+   "variant": "dashed"
+  },
+  {
+   "from": "slave",
+   "to": "ldap",
+   "label": "apply diff"
+  },
+  {
+   "from": "slave",
+   "to": "trust",
+   "label": "publish"
+  },
+  {
+   "from": "browser",
+   "to": "gateway",
+   "label": "WSS + ticket",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "bottom",
+   "via": [
+    [
+     105,
+     720
+    ],
+    [
+     1085,
+     720
+    ]
+   ]
+  },
+  {
+   "from": "gateway",
+   "to": "login",
+   "label": "SSH, 5-min cert",
+   "variant": "security",
+   "route": "straight"
+  },
+  {
+   "from": "login",
+   "to": "trust",
+   "label": "reads"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "One codebase",
+   "items": [
+    "master, slave, gateway and hook are Go programs in cmd/",
+    "the master runs as WebAssembly on a Cloudflare Worker, or natively in a container"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Trust boundaries",
+   "items": [
+    "Browsers reach the API over HTTPS through Access or Caddy",
+    "Machines use client certificates on the sync endpoint only",
+    "Gateway tickets and SSH certificates last 5 minutes"
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Sync model",
+   "items": [
+    "the master publishes a hash of the snapshot (DNS, or HTTPS)",
+    "a slave downloads the snapshot only when the hash changes",
+    "browsers read live status from the status store with presigned links"
+   ]
+  }
+ ]
+}

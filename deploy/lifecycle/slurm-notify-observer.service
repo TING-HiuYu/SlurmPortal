@@ -1,0 +1,27 @@
+[Unit]
+Description=Slurm notification GET-only mTLS observer gateway
+After=network-online.target slurmrestd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=slurm
+Group=slurm
+UMask=0077
+ExecStart=/usr/local/libexec/go-ldap-admin/slurm-notify-observer -config /etc/go-ldap-admin/job-notify-observer.yaml
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

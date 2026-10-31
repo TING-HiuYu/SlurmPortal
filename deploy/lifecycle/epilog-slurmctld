@@ -1,0 +1,6 @@
+#!/bin/sh
+# Controller hook only. Short executions also need an ending event for cleanup.
+[ -x /usr/local/libexec/go-ldap-admin/slurm-lifecycle-hook ] || exit 0
+exec /usr/local/libexec/go-ldap-admin/slurm-lifecycle-hook \
+  --config /etc/go-ldap-admin/lifecycle-hook.yaml \
+  --event ending

@@ -1,0 +1,9 @@
+{
+  "cluster": "mycluster",
+  "deletePolicy": "delete",
+  "homeRoot": "/home",
+  "sharedRoot": "/home/shared",
+  "storageCommands": [["/usr/bin/python3", "/usr/local/libexec/go-ldap-admin/reconcile-home-acl.py", "--user", "%USERNAME%", "--no-backfill"]],
+  "identityPrefix": ["/usr/bin/getent"],
+  "sacctmgrPrefix": ["/usr/bin/sacctmgr"]
+}

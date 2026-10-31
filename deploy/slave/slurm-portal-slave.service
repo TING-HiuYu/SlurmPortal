@@ -1,0 +1,29 @@
+# Slurm Portal slave as a systemd service, for clusters that run it on the host instead of in a
+# container (deploy/compose/slave). Install the binary from ./cmd/slave as
+# /usr/local/sbin/slurm-portal-slave and the config as /etc/slurm-portal/slave.yml (mode 0600,
+# owned by slurm-portal). ReadWritePaths must include every trust directory in slave.yml.
+[Unit]
+Description=Slurm Portal slave (LDAP, SSH trust, cluster status)
+After=network-online.target slapd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=slurm-portal
+Group=slurm-portal
+UMask=0077
+StateDirectory=slurm-portal
+WorkingDirectory=/var/lib/slurm-portal
+ExecStart=/usr/local/sbin/slurm-portal-slave -config /etc/slurm-portal/slave.yml
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/slurm-portal /srv/slurm-portal-trust
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+{
+  "domain": "login.example.org",
+  "public_port": 7000,
+  "source_root": "/var/lib/go-ldap-admin-acme/site/config",
+  "source_certificate": "/var/lib/go-ldap-admin-acme/site/config/live/login.example.org/fullchain.pem",
+  "source_key": "/var/lib/go-ldap-admin-acme/site/config/live/login.example.org/privkey.pem",
+  "target_certificate": "/runtime/site/tls/https.crt.pem",
+  "target_key": "/runtime/site/tls/https.key.pem",
+  "protected_paths": ["/runtime/site/main-client.crt.pem", "/runtime/site/main-client.key.pem"],
+  "state_directory": "/var/lib/go-ldap-admin-acme/site/deployment-state",
+  "trust_store": "/etc/ssl/certs/ca-certificates.crt",
+  "minimum_remaining_seconds": 604800,
+  "verification_timeout_seconds": 20,
+  "owner_uid": null,
+  "owner_gid": null,
+  "process_identity": {"argv": ["docker", "exec", "-i", "REPLACE_CONTAINER_NAME", "python3", "-", "identify"], "stdin_file": "/usr/local/libexec/go-ldap-admin/acme/reload_gateway.py"},
+  "nginx_syntax_check": {"argv": ["docker", "exec", "REPLACE_CONTAINER_NAME", "nginx", "-t", "-c", "/etc/go-ldap-admin/web-access-gateway/nginx.conf"]},
+  "reload_go": {"argv": ["docker", "exec", "-i", "REPLACE_CONTAINER_NAME", "python3", "-", "hup"], "stdin_file": "/usr/local/libexec/go-ldap-admin/acme/reload_gateway.py"},
+  "reload_nginx": {"argv": ["docker", "exec", "REPLACE_CONTAINER_NAME", "nginx", "-s", "reload", "-c", "/etc/go-ldap-admin/web-access-gateway/nginx.conf"]},
+  "endpoints": [{"host": "127.0.0.1", "port": 19934}, {"host": "127.0.0.1", "port": 7000}]
+}

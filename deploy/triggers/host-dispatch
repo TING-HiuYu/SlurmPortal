@@ -1,0 +1,6 @@
+#!/bin/sh
+# Forced command for the host bridge's SSH key on the cluster host (root-owned, mode 0755):
+#   command="/usr/local/libexec/go-ldap-admin/host-dispatch",restrict ssh-ed25519 AAAA... slurm-portal-slave
+# It runs the bridge's dispatcher, which reads one event on stdin and calls slurm_trigger.py.
+set -eu
+exec /usr/local/libexec/go-ldap-admin/slurm-portal-host-bridge dispatch

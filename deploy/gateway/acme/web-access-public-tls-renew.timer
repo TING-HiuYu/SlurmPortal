@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily public HTTPS renewal check for Web Access
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+Unit=web-access-public-tls-renew.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+{
+  "domain": "login.example.org",
+  "zone_id": "REPLACE_WITH_THE_SINGLE_ZONE_ID",
+  "token_file": "/run/secrets/new-dns-edit.token",
+  "state_directory": "/state",
+  "propagation_seconds": 60
+}

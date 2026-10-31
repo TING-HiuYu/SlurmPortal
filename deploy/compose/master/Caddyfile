@@ -1,0 +1,15 @@
+# HTTPS for the portal. Caddy obtains and renews a certificate for PORTAL_HOST automatically (a
+# public DNS name needs ports 80 and 443 reachable; "localhost" uses Caddy's own local CA).
+{$PORTAL_HOST} {
+	encode zstd gzip
+
+	# Live cluster status objects, read by browsers through presigned links. The Host header is
+	# passed through unchanged, because the link's signature covers it.
+	handle /{$STATUS_BUCKET}/* {
+		reverse_proxy s3:9000
+	}
+
+	handle {
+		reverse_proxy master:8080
+	}
+}

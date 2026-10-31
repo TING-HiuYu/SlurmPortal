@@ -1,0 +1,42 @@
+# Slurm Portal slave configuration. Copy to slave.yml (mode 0600, owned by PORTAL_UID).
+# Paths are inside the container: ./secrets is mounted at /etc/slurm-portal/secrets.
+
+# --- The master -------------------------------------------------------------------------------
+# SaaS master (Cloudflare): the mutual-TLS sync hostname, and the DNS record holding the snapshot hash.
+master-url: https://sync.portal.example.org
+dns-name: _sync.portal.example.org
+# Container master: its sync port, and no DNS record (the slave asks the master for the hash):
+#   master-url: https://portal.example.org:8443
+#   dns-name: ""
+check-interval: 60s
+
+cluster-id: cluster1                  # the id the master lists for this slave's certificate
+tls:
+  cert-file: /etc/slurm-portal/secrets/client.crt
+  key-file: /etc/slurm-portal/secrets/client.key
+  server-name: sync.portal.example.org # container master: the host name in its certificate
+  # ca-file: /etc/slurm-portal/secrets/master-ca.crt   # container master only (its private CA)
+
+# --- This cluster's OpenLDAP -----------------------------------------------------------------------
+ldap:
+  url: ldap://127.0.0.1:389            # non-loopback addresses need ldaps:// or start-tls: true
+  bind-dn: cn=admin,dc=example,dc=org
+  password-file: /etc/slurm-portal/secrets/ldap-password
+local-base-dn: dc=example,dc=org
+# When this directory's suffix differs from the master's (LDAP_BASE_DN), set the master's here and
+# DNs are rewritten: source-base-dn: dc=example,dc=org
+# local-group-dn: ou=groups,dc=example,dc=org
+
+# --- What the slave writes -------------------------------------------------------------------------
+state-dir: /var/lib/slurm-portal/state
+health-listen: 127.0.0.1:8081
+trust-dirs:
+  - /trust
+limits:
+  max-user-deletions: 5                # refuse a sync that would delete more users than this
+  allow-ca-removal: false              # refuse a sync that would stop trusting an SSH CA
+# trigger-file: /etc/slurm-portal/secrets/triggers.yaml   # run commands on user changes (see deploy/triggers)
+
+# --- Status reports (need the Slurm client tools in the image; see docs/deploy-slaves.md) -------------
+current-status:
+  enabled: false

@@ -1,0 +1,26 @@
+.diag-canvas { overflow: auto; padding: 28px 24px; min-height: 360px; background-color: var(--console-bg);
+  background-image: radial-gradient(var(--console-border) 1px, transparent 1px); background-size: 18px 18px; border-radius: 0 0 12px 12px; }
+.diag-stage { position: relative; margin: 0 auto; }
+.diag-stage svg { display: block; }
+.diag-panel { position: absolute; z-index: 2; box-shadow: var(--console-shadow); transition: left 0.15s, top 0.15s; }
+.zone { fill: var(--console-surface); stroke: var(--console-border); }
+.zone.master { stroke: var(--console-accent); fill: var(--console-accent-soft); }
+.zone.mail { fill: var(--console-violet-soft); }
+.zone.cluster { stroke-dasharray: 5 4; }
+.zone-title { font-size: 13px; font-weight: 650; fill: var(--console-text); }
+.zone-sub { font-size: 11px; fill: var(--console-muted); }
+.edge { fill: none; stroke-width: 1.6; }
+.edge.ok { stroke: var(--console-success); } .edge.stale { stroke: var(--console-warning); } .edge.error { stroke: var(--console-danger); stroke-width: 2; }
+.edge.missing, .edge.disabled { stroke: var(--console-placeholder); stroke-dasharray: 5 4; }
+.edge.dim, .node.dim { opacity: 0.25; }
+.fill-ok { fill: var(--console-success); } .fill-stale { fill: var(--console-warning); } .fill-error { fill: var(--console-danger); }
+.fill-missing, .fill-disabled { fill: var(--console-placeholder); }
+.node { cursor: pointer; outline: none; }
+.node-box { fill: var(--console-surface); stroke: var(--console-border); }
+.node:hover .node-box, .node:focus-visible .node-box, .node.active .node-box { stroke: var(--console-accent); stroke-width: 1.5; }
+.node-title { font-size: 13px; font-weight: 600; fill: var(--console-text); }
+.node-sub { font-size: 11px; fill: var(--console-muted); }
+.node.ok .node-dot, .node.ok .node-bar { fill: var(--console-success); }
+.node.stale .node-dot, .node.stale .node-bar { fill: var(--console-warning); }
+.node.error .node-dot, .node.error .node-bar { fill: var(--console-danger); }
+.node.missing .node-dot, .node.missing .node-bar, .node.disabled .node-dot, .node.disabled .node-bar { fill: var(--console-placeholder); }

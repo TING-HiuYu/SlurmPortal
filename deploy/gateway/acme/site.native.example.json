@@ -1,0 +1,13 @@
+{
+  "configuration_complete": false,
+  "token_source_confirmed_new": false,
+  "domain": "login.example.org",
+  "cert_name": "existing-certificate-name",
+  "acme_root": "/var/lib/go-ldap-admin-acme/site",
+  "directories": {"config": "/etc/letsencrypt"},
+  "runner": {"type": "native", "binary": "/usr/bin/certbot"},
+  "dns_hook": "/usr/local/libexec/go-ldap-admin/acme/cloudflare_dns01.py",
+  "dns_config": "/etc/go-ldap-admin/web-access-acme/dns-hook.json",
+  "new_dns_token_file": "/etc/go-ldap-admin/web-access-acme/new-dns-edit.token",
+  "deployment_config": "/etc/go-ldap-admin/web-access-acme/deployment.json"
+}

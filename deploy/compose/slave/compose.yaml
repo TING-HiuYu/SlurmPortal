@@ -1,0 +1,38 @@
+# Slurm Portal slave for one cluster. It works with either master: Cloudflare (SaaS) or containers.
+# Run ./init.sh, put slave.yml and the secrets/ bundle next to this file (see docs/deploy-slaves.md), then
+#   docker compose up -d
+# The slave uses the host network so it reaches the cluster's OpenLDAP on 127.0.0.1, and writes the
+# SSH trust files into TRUST_DIR, which every login node's sshd reads.
+name: slurm-portal-slave
+
+services:
+  slave:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/slave.Dockerfile
+    image: slurm-portal-slave:local
+    restart: unless-stopped
+    network_mode: host
+    user: "${PORTAL_UID:-10001}:${PORTAL_GID:-10001}"
+    volumes:
+      - ./slave.yml:/etc/slurm-portal/slave.yml:ro
+      - ./secrets:/etc/slurm-portal/secrets:ro
+      - ./data/state:/var/lib/slurm-portal
+      - ./data/passwd:/etc/passwd:ro
+      - ${TRUST_DIR:-./data/trust}:/trust
+
+  # Optional: a throwaway OpenLDAP to try the slave without a cluster (docker compose --profile demo up -d).
+  # It listens on 127.0.0.1:1389 with base DN dc=example,dc=org.
+  demo-ldap:
+    profiles: ["demo"]
+    build: ./demo-ldap
+    image: slurm-portal-demo-ldap:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1389:1389"
+    environment:
+      LDAP_BASE_DN: ${DEMO_LDAP_BASE_DN:-dc=example,dc=org}
+    volumes:
+      - ./secrets/ldap-password:/run/ldap-password:ro
+      - ./data/demo-ldap:/ldap-data
+    user: "${PORTAL_UID:-10001}:${PORTAL_GID:-10001}"

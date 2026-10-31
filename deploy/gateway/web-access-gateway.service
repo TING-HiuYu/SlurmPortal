@@ -1,0 +1,33 @@
+[Unit]
+Description=Slurm Portal web-access gateway (user-scoped SSH, files, transfers)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=web-access-gateway
+Group=web-access-gateway
+UMask=0077
+ExecStartPre=/usr/local/libexec/go-ldap-admin/web-access-gateway -config /etc/go-ldap-admin/web-access-gateway.yaml -check-config
+ExecStart=/usr/local/libexec/go-ldap-admin/web-access-gateway -config /etc/go-ldap-admin/web-access-gateway.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+StateDirectory=go-ldap-admin-web-access-gateway
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/go-ldap-admin-web-access-gateway
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/go-ldap-admin-web-access-gateway
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

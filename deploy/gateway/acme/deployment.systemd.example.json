@@ -1,0 +1,21 @@
+{
+  "domain": "login.example.org",
+  "public_port": 19933,
+  "source_root": "/etc/letsencrypt",
+  "source_certificate": "/etc/letsencrypt/live/existing-certificate-name/fullchain.pem",
+  "source_key": "/etc/letsencrypt/live/existing-certificate-name/privkey.pem",
+  "target_certificate": "/etc/go-ldap-admin/web-access-gateway/https.crt.pem",
+  "target_key": "/etc/go-ldap-admin/web-access-gateway/https.key.pem",
+  "protected_paths": ["/runtime/main-client.crt.pem", "/runtime/main-client.key.pem"],
+  "state_directory": "/var/lib/go-ldap-admin-acme/site/deployment-state",
+  "trust_store": "/etc/ssl/certs/ca-certificates.crt",
+  "minimum_remaining_seconds": 604800,
+  "verification_timeout_seconds": 20,
+  "owner_uid": null,
+  "owner_gid": null,
+  "process_identity": {"argv": ["systemctl", "show", "-p", "MainPID", "--value", "web-access-gateway.service"]},
+  "nginx_syntax_check": {"argv": ["nginx", "-t", "-c", "/etc/go-ldap-admin/web-access-gateway/nginx.conf"]},
+  "reload_go": {"argv": ["systemctl", "reload", "web-access-gateway.service"]},
+  "reload_nginx": {"argv": ["systemctl", "reload", "web-access-nginx.service"]},
+  "endpoints": [{"host": "127.0.0.1", "port": 19934}, {"host": "127.0.0.1", "port": 19933}]
+}

@@ -1,0 +1,53 @@
+# Slurm Portal master on Cloudflare (Worker + D1 + R2). Copy to wrangler.toml, replace every
+# placeholder, and follow docs/deploy-saas-master.md. Secrets are set with `wrangler secret`, never here.
+name = "slurm-portal"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+# Browsers use the portal host (behind Cloudflare Access); slaves and gateways use the sync host
+# (mutual TLS, not behind Access). Both are custom domains of this Worker.
+routes = [{ pattern = "portal.example.org", custom_domain = true }, { pattern = "sync.portal.example.org", custom_domain = true }]
+
+# The web app (web/, built by build.sh). Only API, sync and health paths run the Worker; static
+# files are served by Workers Static Assets, which are not billed as Worker requests.
+[assets]
+directory = "../../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/sync/*", "/healthz"]
+
+# Renews expiring user certificates and republishes the snapshot hash.
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+AUTH_ISSUER = "slurm-portal"
+AUTH_AUDIENCE = "slurm-portal-api"
+LDAP_BASE_DN = "dc=example,dc=org"
+LDAP_USER_DN = "ou=people,dc=example,dc=org"
+AUDIT_ENABLED = "true"
+# Bounded audit log: past this many records each new one replaces the oldest (keeps D1 small).
+AUDIT_MAX_RECORDS = "200000"
+# Machine endpoints (/sync/*) are served only on this hostname; browser paths are refused there.
+SYNC_HOSTNAME = "sync.portal.example.org"
+# Slaves read the snapshot hash from this TXT record; the CLOUDFLARE_API_TOKEN secret may edit it.
+SYNC_DNS_NAME = "_sync.portal.example.org"
+CLOUDFLARE_ZONE_ID = "<zone id of example.org>"
+CLOUDFLARE_RECORD_ID = "<id of the _sync TXT record>"
+# SHA-256 fingerprints (lowercase hex) of every slave and gateway client certificate, comma-separated.
+SYNC_CLIENT_FINGERPRINTS = "<fingerprint of cluster1's certificate>"
+# One entry per cluster: its id, display name and client-certificate fingerprint.
+CLUSTERS = '[{"id":"cluster1","name":"Cluster 1","fingerprint":"<fingerprint of cluster1 certificate>"}]'
+PLUGINS_ENABLED = "oauth,cloudflare-access,current-status,cluster-status,resource-status,resource-monitor,job-notification,mail-pool,web-access,diagnostics"
+PLUGINS_CONFIG = '{"cloudflare-access":{"team-domain":"<team>.cloudflareaccess.com","applications":[{"origin":"https://portal.example.org","path-prefix":"/","aud":"<Access application AUD tag>"}]},"current-status":{"account-id":"<Cloudflare account id>","bucket":"slurm-portal-status"},"web-access":{"ticket-key-id":"web-access-1","gateways":[]}}'
+
+[[d1_databases]]
+binding = "DB"
+database_name = "slurm-portal"
+database_id = "<D1 database id>"
+
+[[rules]]
+type = "CompiledWasm"
+globs = ["**/*.wasm"]
+fallthrough = false

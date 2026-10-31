@@ -1,0 +1,14 @@
+{
+  "configuration_complete": false,
+  "token_source_confirmed_new": false,
+  "domain": "login.example.org",
+  "cert_name": "login.example.org",
+  "acme_root": "/var/lib/go-ldap-admin-acme/site",
+  "runner": {"type": "docker", "image": "certbot/certbot:v5.8.0", "image_id": "REPLACE_WITH_LOCAL_IMMUTABLE_IMAGE_ID"},
+  "dns_hook": "/usr/local/libexec/go-ldap-admin/acme/cloudflare_dns01.py",
+  "dns_config": "/etc/go-ldap-admin/web-access-acme/dns-hook.json",
+  "new_dns_token_file": "/etc/go-ldap-admin/web-access-acme/new-dns-edit.token",
+  "deployment_config": "/etc/go-ldap-admin/web-access-acme/deployment.json",
+  "contact_email": null,
+  "allow_no_email": false
+}

@@ -1,0 +1,19 @@
+.auth-cluster-scene { width: 100%; max-width: 800px; margin-right: auto; margin-left: auto; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.auth-cluster-scene svg { display: block; width: 100%; height: auto; overflow: visible; pointer-events: none; }
+.server-float { transform-box: fill-box; transform-origin: center; animation: cluster-scene-float 9s ease-in-out infinite; }
+.float-left { animation-duration: 10s; animation-delay: -4s; }
+.float-right { animation-duration: 11s; animation-delay: -6s; }
+.float-main { animation-delay: -1s; }
+.server-lights { animation: cluster-scene-light 6s ease-in-out infinite; }
+.network-signal { animation: cluster-scene-flow 18s linear infinite; }
+.signal-b { animation-duration: 23s; animation-delay: -8s; }
+.spark { animation: cluster-scene-spark 7s ease-in-out infinite; }
+.spark-a { animation-delay: -2s; }
+.spark-b { animation-duration: 9s; animation-delay: -5s; }
+.spark-c { animation-duration: 8s; animation-delay: -3s; }
+.is-paused *, .is-paused *::before, .is-paused *::after { animation-play-state: paused !important; }
+@keyframes cluster-scene-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes cluster-scene-light { 0%,100% { opacity: .55; } 50% { opacity: .95; } }
+@keyframes cluster-scene-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -856; } }
+@keyframes cluster-scene-spark { 0%,100% { opacity: .2; } 50% { opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .auth-cluster-scene * { animation: none !important; } }

@@ -1,0 +1,1 @@
+{"rules":[{"allowed":{"origins":["https://portal.example.org"],"methods":["GET","HEAD"]},"exposeHeaders":["ETag"],"maxAgeSeconds":3600}]}

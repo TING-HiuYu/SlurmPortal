@@ -1,0 +1,82 @@
+{
+  "binding": {
+    "gateway_id": "fixture-gateway",
+    "cluster_id": "source"
+  },
+  "now_ms": 1793095200000,
+  "events": [
+    {
+      "version": 1,
+      "event_id": "00000000-0000-4000-8000-000000000101",
+      "transfer_id": "00000000-0000-4000-8000-000000000101",
+      "gateway_id": "fixture-gateway",
+      "cluster_id": "source",
+      "user_id": 7,
+      "username": "user",
+      "destination_cluster_id": "destination",
+      "source_paths": [
+        "/home/user/data",
+        "/home/user/batch one.bin"
+      ],
+      "destination_path": "/home/user/incoming",
+      "status": "completed",
+      "exit_code": 0,
+      "started_at": "2026-10-27T08:00:00Z",
+      "finished_at": "2026-10-27T08:01:00Z",
+      "bytes_sent": 120000000,
+      "bytes_received": 0,
+      "total_bytes": 120000000,
+      "elapsed_seconds": 60,
+      "average_mb_per_second": 2
+    },
+    {
+      "version": 1,
+      "event_id": "00000000-0000-4000-8000-000000000102",
+      "transfer_id": "00000000-0000-4000-8000-000000000102",
+      "gateway_id": "fixture-gateway",
+      "cluster_id": "source",
+      "user_id": 7,
+      "username": "user",
+      "destination_cluster_id": "destination",
+      "source_paths": [
+        "/home/user/data",
+        "/home/user/batch one.bin"
+      ],
+      "destination_path": "/home/user/incoming",
+      "status": "partial",
+      "exit_code": 23,
+      "started_at": "2026-10-27T08:02:00Z",
+      "finished_at": "2026-10-27T08:02:30Z",
+      "bytes_sent": 6000000,
+      "bytes_received": null,
+      "total_bytes": 12000000,
+      "elapsed_seconds": 30,
+      "average_mb_per_second": null
+    },
+    {
+      "version": 1,
+      "event_id": "00000000-0000-4000-8000-000000000103",
+      "transfer_id": "00000000-0000-4000-8000-000000000103",
+      "gateway_id": "fixture-gateway",
+      "cluster_id": "source",
+      "user_id": 7,
+      "username": "user",
+      "destination_cluster_id": "destination",
+      "source_paths": [
+        "/home/user/data",
+        "/home/user/batch one.bin"
+      ],
+      "destination_path": "/home/user/incoming",
+      "status": "failed",
+      "exit_code": 125,
+      "started_at": "2026-10-27T08:03:00.123456789Z",
+      "finished_at": "2026-10-27T08:03:00.248456789Z",
+      "bytes_sent": null,
+      "bytes_received": null,
+      "total_bytes": null,
+      "elapsed_seconds": 0.125,
+      "average_mb_per_second": null,
+      "error": "runner_unsupported"
+    }
+  ]
+}

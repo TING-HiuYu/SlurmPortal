@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS v2_sync_state (
+	name TEXT PRIMARY KEY,
+	value TEXT NOT NULL,
+	updated_at TEXT NOT NULL
+)

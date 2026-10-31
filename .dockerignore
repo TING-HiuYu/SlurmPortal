@@ -1,0 +1,8 @@
+.git
+**/node_modules
+web/dist
+deploy/worker/dist
+deploy/compose/*/data
+deploy/compose/*/secrets
+deploy/compose/*/.env
+tmp

@@ -1,0 +1,7 @@
+{
+  "host": "slurm-controller.example.org",
+  "port": 22,
+  "user": "root",
+  "identityFile": "/etc/slurm-portal/secrets/host-bridge.key",
+  "timeoutSeconds": 285
+}
