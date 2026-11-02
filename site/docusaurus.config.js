@@ -3,14 +3,25 @@
 import { themes as prismThemes } from "prism-react-renderer";
 
 const repo = "https://github.com/TING-HiuYu/SlurmPortal";
+const parentUrl = process.env.BASE_URL ?? "https://ting-hiuyu.github.io/";
+if (!URL.canParse(parentUrl)) {
+  throw new Error("BASE_URL must be an absolute HTTP(S) parent URL, such as https://thy.icu/sth/");
+}
+const deploymentUrl = new URL(parentUrl);
+if (
+  !["http:", "https:"].includes(deploymentUrl.protocol) ||
+  deploymentUrl.username || deploymentUrl.password || deploymentUrl.search || deploymentUrl.hash
+) {
+  throw new Error("BASE_URL must use HTTP(S) with no credentials, query string or fragment");
+}
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Slurm Portal",
   tagline: "Accounts, SSH certificates and live status for Slurm HPC clusters",
   favicon: "img/logo.svg",
-  url: "https://ting-hiuyu.github.io",
-  baseUrl: "/SlurmPortal/",
+  url: deploymentUrl.origin,
+  baseUrl: `${deploymentUrl.pathname.replace(/\/+$/, "")}/SlurmPortal/`,
   organizationName: "TING-HiuYu",
   projectName: "SlurmPortal",
   trailingSlash: false,
