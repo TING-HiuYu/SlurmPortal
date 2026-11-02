@@ -1,5 +1,6 @@
 # Slurm Portal
 
+[![Website](https://img.shields.io/badge/website-docs%20%26%20wiki-3e5fd8)](https://ting-hiuyu.github.io/SlurmPortal/)
 [![CI](https://github.com/TING-HiuYu/SlurmPortal/actions/workflows/ci.yml/badge.svg)](https://github.com/TING-HiuYu/SlurmPortal/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)
 ![Runs on](https://img.shields.io/badge/runs%20on-Cloudflare%20or%20Docker-F38020)
@@ -12,13 +13,20 @@ a browser terminal, file transfers between clusters, job e-mails and live cluste
 
 ![Sign-in page](docs/images/login.png)
 
+## Advantage
+
+- **One portal, every cluster.** Accounts, groups and SSH certificates are managed once and replicated to each cluster's own OpenLDAP. UIDs, GIDs and access stay consistent everywhere, and each cluster keeps working on its own if the portal is unreachable.
+- **Runs serverless or self-hosted.** The same Go codebase runs as WebAssembly on Cloudflare Workers (D1, R2, Access) with no servers to maintain, or in Docker Compose on your own host.
+- **Cheap and quiet.** Slaves check a tiny hash and download the snapshot only when it changes. Live cluster status is served straight from object storage, so an idle site costs next to nothing.
+
+
 ## What it does
 
 - **Accounts and groups.** Users, POSIX groups, organisations and roles live in one place, and
   every cluster's OpenLDAP follows them. UIDs and GIDs are allocated once and stay the same
   everywhere.
 - **SSH certificates.** The portal is a certificate authority. Users log in to the clusters
-  with a key and a short-lived certificate instead of passwords, and revocation reaches every
+  with a key and a 30-day certificate the portal issues, instead of passwords, and revocation reaches every
   login node through a KRL.
 - **Sign-in.** Users sign in with a password, GitHub (OAuth), or Cloudflare Access. Forgotten
   passwords are reset with an e-mailed code. Only one-way hashes are stored.
@@ -53,18 +61,21 @@ a browser terminal, file transfers between clusters, job e-mails and live cluste
 - **Lifecycle hook** runs from the Slurm controller's prolog and epilog and reports finished
   jobs for e-mail and GPU accounting.
 
-Read [docs/architecture.md](docs/architecture.md) for the full picture, or open
-[docs/architecture.html](docs/architecture.html) in a browser for an interactive diagram.
+Read [the architecture page](docs/dev/architecture.md) for the full picture, or open
+the [interactive diagram](https://ting-hiuyu.github.io/SlurmPortal/architecture.html).
 
 ## Deploy
 
+The [deployment wiki](docs/deploy/README.md) goes from bare Ubuntu 24.04 servers to a working
+cluster: munge, Slurm, accounting, slurmrestd, OpenLDAP, sssd and NFS, then the portal. Already
+running Slurm with LDAP? Go straight to the portal:
+
 | | Guide |
 | --- | --- |
-| Master on Cloudflare (Worker, D1, R2, Access) | [docs/deploy-saas-master.md](docs/deploy-saas-master.md) |
-| Master in containers (Docker Compose: master, SQLite, RustFS, Caddy) | [docs/deploy-container-master.md](docs/deploy-container-master.md) |
-| Slave on each cluster (Docker Compose), for either master | [docs/deploy-slaves.md](docs/deploy-slaves.md) |
-
-[docs/deployment.md](docs/deployment.md) compares the two masters and lists the optional parts.
+| Master on Cloudflare (Worker, D1, R2, Access) | [Serverless master](docs/deploy/master-saas.md) |
+| Master in containers (Docker Compose: master, SQLite, RustFS, Caddy) | [Container master](docs/deploy/master-container.md) |
+| Slave on each cluster, for either master | [The slave](docs/deploy/slaves.md) |
+| Web terminal, job e-mail, GPU usage | [Optional parts](docs/deploy/optional.md) |
 
 ## Try it on one machine
 
@@ -108,20 +119,20 @@ You need Go 1.26 and Node.js 22.
 make check                               # gofmt, vet, Go tests, JS tests, web build, Wasm build
 ```
 
-[docs/development.md](docs/development.md) shows how to run each part locally and lists the code
+[The development guide](docs/dev/development.md) shows how to run each part locally and lists the code
 conventions.
 
 ## Documentation
 
 | Document | For |
 | --- | --- |
-| [Deployment](docs/deployment.md) | Choosing a master, and the three guides |
-| [Architecture](docs/architecture.md) | Components, request pipeline, sync protocol, storage |
-| [Plugins](docs/plugins.md) | The plugin system, every built-in plugin, writing a new one |
-| [Project layout](docs/project-layout.md) | What lives where in this repository |
-| [Development](docs/development.md) | Local setup, tests, conventions |
-| [Security model](docs/security.md) | Authentication, authorization, machine identity, secrets |
-| [Operations](docs/operations.md) | Day-to-day tasks and troubleshooting |
+| [Deployment](docs/deploy/README.md) | Choosing a master, and the three guides |
+| [Architecture](docs/dev/architecture.md) | Components, request pipeline, sync protocol, storage |
+| [Plugins](docs/dev/plugins.md) | The plugin system, every built-in plugin, writing a new one |
+| [Project layout](docs/dev/project-layout.md) | What lives where in this repository |
+| [Development](docs/dev/development.md) | Local setup, tests, conventions |
+| [Security model](docs/dev/security.md) | Authentication, authorization, machine identity, secrets |
+| [Operations](docs/deploy/operations.md) | Day-to-day tasks and troubleshooting |
 
 ## Acknowledgements
 

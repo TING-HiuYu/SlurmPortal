@@ -39,7 +39,7 @@ port=$(sed -n 's/^SYNC_PORT=//p' .env)
 base=$(sed -n 's/^LDAP_BASE_DN=//p' .env)
 cat > "$bundle/README.txt" <<TXT
 Bundle for cluster $id. Copy this directory to the cluster host, into deploy/compose/slave/secrets/,
-then follow docs/deploy-slaves.md. In slave.yml set:
+then follow docs/deploy/slaves.md. In slave.yml set:
   master-url: https://$host:${port:-8443}
   dns-name: ""                  # this master publishes its hash over HTTPS, not DNS
   cluster-id: $id

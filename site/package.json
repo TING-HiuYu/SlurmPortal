@@ -1,0 +1,44 @@
+{
+  "name": "slurm-portal-site",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "prestart": "node scripts/copy-static.mjs",
+    "start": "docusaurus start",
+    "dev": "npm start --",
+    "prebuild": "node scripts/copy-static.mjs",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "write-translations": "docusaurus write-translations"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@docusaurus/theme-mermaid": "3.10.2",
+    "@easyops-cn/docusaurus-search-local": "0.55.3",
+    "@fontsource/michroma": "^5.3.0",
+    "@fontsource/noto-sans-sc": "5.3.1",
+    "@fontsource/saira": "^5.3.0",
+    "@mdx-js/react": "3.1.1",
+    "clsx": "2.1.1",
+    "prism-react-renderer": "2.4.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 2 chrome version",
+      "last 2 firefox version",
+      "last 2 safari version"
+    ]
+  }
+}

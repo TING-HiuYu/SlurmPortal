@@ -1,6 +1,6 @@
 # deploy/
 
-Everything installed somewhere other than as a Go binary. [docs/deployment.md](../docs/deployment.md)
+Everything installed somewhere other than as a Go binary. [docs/deploy](../docs/deploy/README.md)
 explains how the parts fit together and links to the three guides.
 
 | Directory | Used by | Contents |

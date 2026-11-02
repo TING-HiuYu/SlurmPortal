@@ -26,3 +26,6 @@ deploy/compose/slave/slave.yml
 deploy/worker/wrangler.toml
 deploy/worker/wrangler.*.toml
 !deploy/worker/wrangler.example.toml
+
+# Copied from docs/ by site/scripts/copy-static.mjs
+site/static/architecture.html

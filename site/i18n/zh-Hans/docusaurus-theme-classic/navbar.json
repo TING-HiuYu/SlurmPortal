@@ -1,0 +1,30 @@
+{
+  "title": {
+    "message": "Slurm Portal",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Slurm Portal",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Developer wiki": {
+    "message": "开发 Wiki",
+    "description": "Navbar item with label Developer wiki"
+  },
+  "item.label.Deployment wiki": {
+    "message": "部署 Wiki",
+    "description": "Navbar item with label Deployment wiki"
+  },
+  "item.label.FAQ": {
+    "message": "常见问题",
+    "description": "Navbar item with label FAQ"
+  },
+  "item.label.Changelog": {
+    "message": "更新日志",
+    "description": "Navbar item with label Changelog"
+  },
+  "item.label.Blog": {
+    "message": "博客",
+    "description": "Navbar item with label Blog"
+  }
+}

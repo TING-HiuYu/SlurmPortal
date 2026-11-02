@@ -2,7 +2,7 @@
 #   docker compose up -d
 # Services: Caddy (HTTPS for browsers, automatic certificates), the master (SQLite in ./data), and an
 # S3 store (RustFS) for live cluster status. Slaves connect straight to the master on SYNC_PORT with
-# mutual TLS. See docs/deploy-container-master.md.
+# mutual TLS. See docs/deploy/master-container.md.
 name: slurm-portal-master
 
 services:
@@ -38,9 +38,11 @@ services:
       PLUGIN_CURRENT_STATUS_R2_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       PLUGIN_CURRENT_STATUS_R2_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       # Browsers fetch status objects from the portal's own origin; Caddy forwards /<bucket>/ to S3.
+      # WEB_ACCESS_CONFIG (in .env) binds web-access gateways; see docs/deploy/optional.md.
       PLUGINS_CONFIG: >-
         {"current-status": {"bucket": "${STATUS_BUCKET}", "endpoint": "http://s3:9000",
-         "public-endpoint": "https://${PORTAL_HOST}"}}
+         "public-endpoint": "${PORTAL_URL:-https://${PORTAL_HOST}}"},
+         "web-access": ${WEB_ACCESS_CONFIG:-null}}
     expose: ["8080"]
     ports:
       - "${SYNC_PORT:-8443}:8443"   # slaves and gateways, mutual TLS

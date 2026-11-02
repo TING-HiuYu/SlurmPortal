@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/fs"
 	"math/big"
 	"os"
 	"os/exec"
@@ -117,14 +118,9 @@ func PublishTrust(shareDir string, s replication.Snapshot, now time.Time) error 
 	} else if err != nil {
 		return err
 	}
-	if len(sshCAs) > 0 {
-		// the slave runs with a private umask; consumers (sshd, gateways) need these readable
-		if err := os.Chmod(filepath.Join(target, "ssh"), 0o755); err != nil {
-			return err
-		}
-		if err := os.Chmod(filepath.Join(target, "ssh", "trusted-user-ca-keys.pub"), 0o644); err != nil {
-			return err
-		}
+	// A generation staged by an older slave may carry private modes; repair it before publishing.
+	if err := publicModes(target); err != nil {
+		return err
 	}
 	link := filepath.Join(shareDir, ".current-"+version)
 	if err := os.Symlink(version, link); err != nil && !errors.Is(err, os.ErrExist) {
@@ -182,8 +178,28 @@ func stageGeneration(shareDir, target string, bundle []byte, crls map[string][]b
 			}
 		}
 	}
+	if err := publicModes(stage); err != nil {
+		return err
+	}
 	if err := os.Rename(stage, target); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 	return nil
+}
+
+// publicModes makes a generation world-readable whatever the umask: the slave runs with a private
+// umask, and sshd (often root squashed on NFS), gateways and CRL consumers read these files.
+func publicModes(root string) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		switch {
+		case d.IsDir():
+			return os.Chmod(path, 0o755)
+		case d.Type().IsRegular():
+			return os.Chmod(path, 0o644)
+		}
+		return nil
+	})
 }

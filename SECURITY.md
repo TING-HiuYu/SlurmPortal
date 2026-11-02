@@ -26,5 +26,5 @@ gets no fixes.
 
 ## Scope
 
-How the system is protected is described in [docs/security.md](docs/security.md). Problems in
+How the system is protected is described in [docs/security.md](docs/dev/security.md). Problems in
 Cloudflare, OpenLDAP, OpenSSH or Slurm themselves should go to those projects.

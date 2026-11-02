@@ -1,0 +1,4 @@
+.page { max-width: 760px; margin: 0 auto; padding: 96px 16px 120px; text-align: center; }
+.label { display: inline-block; background: var(--sp-ink); color: var(--sp-paper); padding: 6px 14px; font: 600 .78rem/1.2 var(--sp-font-ui); letter-spacing: .18em; }
+.title { margin: 28px 0 12px; font-family: var(--sp-font-display); font-size: clamp(1.5rem, 4vw, 2.3rem); letter-spacing: .02em; }
+.lead { color: var(--sp-muted); margin-bottom: 32px; }

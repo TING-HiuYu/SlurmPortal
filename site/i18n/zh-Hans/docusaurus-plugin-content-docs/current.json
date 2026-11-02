@@ -1,0 +1,38 @@
+{
+  "version.label": {
+    "message": "最新",
+    "description": "The label for version current"
+  },
+  "sidebar.dev.category.Core Concepts": {
+    "message": "核心概念",
+    "description": "The label for category 'Core Concepts' in sidebar 'dev'"
+  },
+  "sidebar.dev.category.Architecture Layers": {
+    "message": "架构分层",
+    "description": "The label for category 'Architecture Layers' in sidebar 'dev'"
+  },
+  "sidebar.dev.category.Agents & Frontend": {
+    "message": "集群代理与前端",
+    "description": "The label for category 'Agents & Frontend' in sidebar 'dev'"
+  },
+  "sidebar.dev.category.Security & Cryptography": {
+    "message": "安全与密码学",
+    "description": "The label for category 'Security & Cryptography' in sidebar 'dev'"
+  },
+  "sidebar.dev.category.Reference & Workflow": {
+    "message": "参考与开发流程",
+    "description": "The label for category 'Reference & Workflow' in sidebar 'dev'"
+  },
+  "sidebar.deploy.category.Cluster Foundation (Ubuntu 24.04)": {
+    "message": "集群基础环境（Ubuntu 24.04）",
+    "description": "The label for category 'Cluster Foundation (Ubuntu 24.04)' in sidebar 'deploy'"
+  },
+  "sidebar.deploy.category.Slurm Portal Control Plane": {
+    "message": "Slurm Portal 控制平面",
+    "description": "The label for category 'Slurm Portal Control Plane' in sidebar 'deploy'"
+  },
+  "sidebar.deploy.category.Optional Cluster Integrations": {
+    "message": "可选集群组件",
+    "description": "The label for category 'Optional Cluster Integrations' in sidebar 'deploy'"
+  }
+}

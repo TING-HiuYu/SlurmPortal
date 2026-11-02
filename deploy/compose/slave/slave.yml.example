@@ -37,6 +37,6 @@ limits:
   allow-ca-removal: false              # refuse a sync that would stop trusting an SSH CA
 # trigger-file: /etc/slurm-portal/secrets/triggers.yaml   # run commands on user changes (see deploy/triggers)
 
-# --- Status reports (need the Slurm client tools in the image; see docs/deploy-slaves.md) -------------
+# --- Status reports (need the Slurm client tools in the image; see docs/deploy/slaves.md) -------------
 current-status:
   enabled: false

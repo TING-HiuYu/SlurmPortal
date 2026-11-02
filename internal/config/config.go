@@ -110,7 +110,7 @@ func defaults() Config {
 	c := Config{
 		Role:      plugin.RoleStandalone,
 		HTTP:      HTTP{Listen: "127.0.0.1:8888", RatePerSecond: 20, RateBurst: 200},
-		Auth:      Auth{Issuer: "go-ldap-admin", Audience: "go-ldap-admin-api", TokenTTL: 12 * time.Hour},
+		Auth:      Auth{Issuer: "slurm-portal", Audience: "slurm-portal-api", TokenTTL: 12 * time.Hour},
 		DB:        DB{Driver: "sqlite", DSN: "file:data/slurm-portal.db?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)"},
 		Directory: Directory{DefaultShell: "/bin/bash"},
 	}

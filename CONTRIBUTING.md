@@ -16,14 +16,14 @@ Do **not** open a public issue for a security problem; follow [SECURITY.md](SECU
 
 Open an issue with the **Feature request** template. Describe the problem first and the solution
 second. Changes that add D1 reads or writes per request, or Worker requests, need a note on cost
-(see [docs/development.md](docs/development.md#conventions)).
+(see [docs/development.md](docs/dev/development.md#conventions)).
 
 ## Sending code
 
-1. Read [docs/architecture.md](docs/architecture.md) and the part of
-   [docs/project-layout.md](docs/project-layout.md) you will touch.
+1. Read [docs/architecture.md](docs/dev/architecture.md) and the part of
+   [docs/project-layout.md](docs/dev/project-layout.md) you will touch.
 2. Branch from `main`, and keep one topic per pull request.
-3. Follow the [conventions](docs/development.md#conventions):
+3. Follow the [conventions](docs/dev/development.md#conventions):
    - every route declares a permission;
    - errors are `apperr`;
    - schema changes are new migrations;

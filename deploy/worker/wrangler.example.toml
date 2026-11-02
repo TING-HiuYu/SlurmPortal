@@ -1,5 +1,5 @@
 # Slurm Portal master on Cloudflare (Worker + D1 + R2). Copy to wrangler.toml, replace every
-# placeholder, and follow docs/deploy-saas-master.md. Secrets are set with `wrangler secret`, never here.
+# placeholder, and follow docs/deploy/master-saas.md. Secrets are set with `wrangler secret`, never here.
 name = "slurm-portal"
 main = "worker.js"
 compatibility_date = "2026-10-01"
@@ -17,7 +17,7 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/*", "/sync/*", "/healthz"]
 
-# Renews expiring user certificates and republishes the snapshot hash.
+# Re-signs X.509 revocation lists before they expire and republishes the snapshot hash.
 [triggers]
 crons = ["*/5 * * * *"]
 

@@ -1,5 +1,5 @@
 # Slurm Portal slave for one cluster. It works with either master: Cloudflare (SaaS) or containers.
-# Run ./init.sh, put slave.yml and the secrets/ bundle next to this file (see docs/deploy-slaves.md), then
+# Run ./init.sh, put slave.yml and the secrets/ bundle next to this file (see docs/deploy/slaves.md), then
 #   docker compose up -d
 # The slave uses the host network so it reaches the cluster's OpenLDAP on 127.0.0.1, and writes the
 # SSH trust files into TRUST_DIR, which every login node's sshd reads.

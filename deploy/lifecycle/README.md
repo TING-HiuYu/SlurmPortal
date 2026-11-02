@@ -1,7 +1,7 @@
 # Job lifecycle (Slurm controller)
 
 These files connect Slurm to the slave's lifecycle runtime, which sends job-end e-mails and
-per-job GPU usage to the portal. See [docs/architecture.md](../../docs/architecture.md#job-lifecycle).
+per-job GPU usage to the portal. See [docs/architecture.md](../../docs/dev/architecture.md#job-lifecycle).
 
 | File | Install as | Purpose |
 | --- | --- | --- |
@@ -18,5 +18,5 @@ per-job GPU usage to the portal. See [docs/architecture.md](../../docs/architect
    `scontrol reconfigure`.
 4. Set `lifecycle-file` in the slave config to the lifecycle runtime config, and restart the
    slave.
-5. In the portal, turn on 作业通知 (job e-mail) and check 近期资源汇总 (resource summaries)
+5. In the portal, turn on **Job notifications** and check **Recent resource summary**
    after the first job ends.
