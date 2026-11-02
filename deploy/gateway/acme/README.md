@@ -1,34 +1,14 @@
 # Public HTTPS renewal
 
-These components manage a site's public HTTPS certificate separately from master
-mTLS, SSH user CAs and browser JWT signing keys. A site's root-only runtime
-configuration selects exactly one DNS hostname, one Cloudflare zone and one
-certificate lineage. Token values and real private runtime paths do not belong
-in this directory.
+These scripts manage a login node's public HTTPS certificate separately from master mTLS certificates, SSH user CAs, and browser JWT signing keys. Each site uses a root-owned runtime configuration file that targets a single DNS hostname, a single Cloudflare zone, and a single certificate lineage. Never store real API tokens or production private paths in this repository directory.
 
-`cloudflare_dns01.py` accepts only the configured `CERTBOT_DOMAIN`. It records
-the ID returned by its own TXT creation and cleans up only that ID after
-checking its name, type and content. Existing TXT records remain untouched.
-An unknown create outcome leaves a journal requiring inspection instead of
-blindly creating another record. The token must be a new, explicitly authorized
-zone DNS Edit token in a root-owned 0600/0400 regular file.
+`cloudflare_dns01.py` handles ACME DNS-01 challenges strictly for the configured `CERTBOT_DOMAIN`. When creating a TXT record, it logs the record ID returned by Cloudflare and removes only that specific ID during cleanup after verifying its name, type, and value. Pre-existing TXT records are never modified or deleted. If a record creation call fails with an uncertain outcome, the hook leaves a journal file for operator inspection rather than blindly creating duplicate records. The Cloudflare credential must be a dedicated zone DNS Edit token stored in a root-owned regular file with mode `0600` or `0400`.
 
-`renew.py` supports native Certbot and an existing locally pinned Certbot Docker
-image. The Certbot container receives only its site's configuration, challenge
-state, hooks and read-only token file. It does not receive the host Docker
-socket or gateway/main credentials. Existing native lineages can be selected
-with `cert_name` and `directories.config`; other lineages are not renewed by
-this service.
+`renew.py` can run either a host-installed Certbot binary or a locally pinned Certbot Docker image. When using Docker, the container mounts only the site's configuration, ACME challenge state, hook scripts, and read-only API token file; it never mounts the host Docker socket or any gateway/master private keys. Existing host Certbot lineages can be selected via `cert_name` and `directories.config`, while unrelated lineages on the host are ignored.
 
-Use the JSON examples as incomplete templates. Fill the actual runtime file
-ownership, protected master mTLS paths, immutable image ID where relevant and
-site-specific reload commands. Native DNS hook configuration uses host paths;
-the Docker example uses its fixed container mount paths. Keep runtime JSON and
-state root-owned/private. The service account must be able to read the ordinary
-deployed key, which remains 0600. Do not point the Go server at Certbot's final
-`live/` symlinks.
+Treat the `*.example` JSON files as templates. Before running in production, fill in the actual file ownership, protected master mTLS paths, immutable Docker image ID (if using Docker), and site-specific reload commands. Native configurations use host paths for the DNS hook, whereas the Docker template uses the fixed mount paths inside the container. Keep all runtime JSON files and state directories owned by `root` with private permissions. The gateway service user must be able to read the deployed TLS key, which stays at mode `0600`. Point the Go gateway and Nginx at the deployed file paths managed by `deploy.py`, never directly at Certbot's `live/` symlinks.
 
-The host wrapper has four explicit actions:
+`renew.py` supports four subcommands:
 
 ```sh
 python3 renew.py /private/site.json issue-only
@@ -37,44 +17,19 @@ python3 renew.py /private/site.json issue
 python3 renew.py /private/site.json renew
 ```
 
-`issue-only` obtains and cryptographically checks a certificate without touching
-a running gateway. `check` uses ACME staging to test DNS renewal without
-deploying a staging certificate. `issue` and `renew` run the deployment
-transaction only after Certbot succeeds. Registration requires an explicit
-email or no-email choice.
+- `issue-only` acquires a certificate and verifies its cryptographic properties without touching the running gateway.
+- `check` runs a dry-run renewal against the ACME staging server to test DNS-01 automation without deploying the resulting staging certificate.
+- `issue` and `renew` obtain or renew a production certificate and then execute the atomic deployment step once Certbot succeeds. ACME account registration requires an explicit contact email or an explicit opt-out.
 
-`deploy.py` verifies the key pair, public trust chain, server purpose, hostname
-and remaining lifetime. Under a site lock it saves private rollback copies,
-atomically replaces two ordinary files, sends Go SIGHUP and reloads nginx. It
-then verifies the actual leaf DER SHA-256 through both local TLS endpoints with
-the site's SNI and confirms the Go process identity is unchanged. Failed
-activation restores the old files and reloads them; it never restarts Go. A
-failed rollback is reported for operator inspection. Master mTLS paths are an
-explicit protected list and cannot be deployment targets.
+`deploy.py` validates the candidate private key, certificate chain, Extended Key Usage (`serverAuth`), SAN hostname, and remaining validity window before making any changes. While holding a per-site lock, it backs up the current certificate and key, atomically replaces the two deployed files, sends `SIGHUP` to the Go gateway, and reloads Nginx. Afterward, it connects to both local TLS listeners using the site's SNI to verify that each serves the expected leaf certificate (`DER` SHA-256) and confirms that the Go gateway PID did not change. If post-reload verification fails, `deploy.py` automatically restores the backup files and reloads both services without restarting the Go process. If a rollback itself fails, it exits with an error for operator intervention. Master mTLS certificate paths are explicitly blocklisted and can never be overwritten as deployment targets.
 
-The root-only deployment JSON may set `public_port`; omitting it preserves the
-existing default of `19933`. It must be an integer from `1024` through `65535`,
-excluding Go HTTPS `19934` and the completion callback `19935`. The container
-example uses the alternate public port `7000`. This value must match the site's
-actual Nginx listener; it does not change the listener itself. `endpoints` must
-still contain exactly two literal loopback addresses (`127.0.0.1` or `::1`),
-with one port equal to `public_port` and the other equal to `19934`. Remote
-hosts, additional endpoints, callback probes and duplicate ports are rejected
-before any certificate replacement or reload.
+The deployment JSON optionally accepts `public_port` (default `19933`). When set, it must be an integer between `1024` and `65535` other than the Go gateway's internal HTTPS port (`19934`) or completion callback port (`19935`). The containerized gateway example sets `public_port` to `7000`. Note that `public_port` only tells `deploy.py` which local port to probe—it must match your actual Nginx listener configuration. The `endpoints` array must contain two literal loopback addresses (`127.0.0.1` or `::1`), one using `public_port` and the other using `19934`. Any non-loopback address, extra endpoint, callback port, or duplicate port is rejected before files are touched.
 
-For containers, `reload_gateway.py` finds exactly one expected Go executable,
-refuses PID1 and uses a Linux pidfd to send HUP. Run it as the container's normal
-gateway user. It does not introduce another process-control service. Systemd
-installations use the gateway unit's `ExecReload` instead.
+In containerized deployments, `reload_gateway.py` locates the single expected Go gateway process, refuses to signal PID 1, and sends `SIGHUP` via a Linux `pidfd`. Run it as the container's unprivileged gateway user so no extra supervisor control socket is needed. Host systemd deployments use `systemctl reload` (`ExecReload`) instead.
 
-Only enable the provided daily timer after a real staging renewal, candidate
-validation and actual gateway reload have succeeded. The wrapper also checks
-currently deployed TLS when no new certificate is needed. Record the DNS
-token's expiry and rotate its private file before that date; service failure
-must be visible to the operator. Installing a timer alone is not proof of
-working automatic renewal.
+Enable the daily systemd timer (`web-access-acme-renew.timer`) only after you have verified a staging `check`, candidate validation, and a live gateway reload by hand. When `renew` runs and the existing certificate is not yet due for renewal, the wrapper still verifies the currently deployed TLS endpoints. Track your Cloudflare API token's expiration date and rotate the token file before it expires, and ensure systemd unit failures alert an operator. Simply enabling the timer does not guarantee that unattended renewal works.
 
-Run the offline tests without credentials or public DNS writes:
+Run the offline unit test suite (requires no credentials or network access):
 
 ```sh
 python3 -m unittest discover -s deploy/gateway/acme -p 'test_*.py'

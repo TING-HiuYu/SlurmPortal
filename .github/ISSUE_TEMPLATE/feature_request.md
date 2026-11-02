@@ -5,10 +5,9 @@ labels: enhancement
 ---
 
 **Problem**
-What is hard or impossible today, and for whom (users, admins, operators)?
+What is difficult or impossible to do today, and who is affected (users, administrators, or cluster operators)?
 
 **Proposal**
-What should change. Mention any effect on cost (D1 reads and writes, Worker requests) or on the
-clusters.
+Describe the change you would like to see. Note any expected impact on Cloudflare resource usage (D1 reads/writes, Worker invocations) or cluster operations.
 
 **Alternatives considered**

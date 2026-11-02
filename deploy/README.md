@@ -1,22 +1,20 @@
 # deploy/
 
-Everything installed somewhere other than as a Go binary. [docs/deploy](../docs/deploy/README.md)
-explains how the parts fit together and links to the three guides.
+This directory contains all deployment configurations, container definitions, systemd units, and host helper scripts that live outside the Go binaries. See [docs/deploy](../docs/deploy/README.md) for an overview of the architecture and step-by-step installation guides.
 
 | Directory | Used by | Contents |
 | --- | --- | --- |
-| [compose/master](compose/master) | Container master | Compose file (Caddy, master, RustFS), `init.sh`, `add-cluster.sh`, `Caddyfile` |
-| [compose/slave](compose/slave) | Every cluster | Compose file for the slave, `init.sh`, `slave.yml.example`, a demo OpenLDAP |
-| [docker](docker) | Both compose files | `master.Dockerfile` (server + web app) and `slave.Dockerfile` (slave + host bridge) |
-| [worker](worker) | SaaS master | Worker shell and bridges, `build.sh`, `wrangler.example.toml`, smoke test, GitHub connector script |
-| [certs](certs) | Container master | `issue.sh`: the private CA, the master's sync certificate, client certificates |
-| [slave](slave) | Slaves without containers | systemd unit |
-| [triggers](triggers/README.md) | Slaves | `slurm_trigger.py` (Slurm accounts and storage on user changes), host bridge dispatcher, examples |
-| [storage](storage/README.md) | Login and compute nodes | HOME ACL reconciler, trust-file mounts, compute-node SSH trust |
-| [gateway](gateway/README.md) | Login nodes | Gateway config, systemd units, nginx, [ACME renewal](gateway/acme/README.md), [container](gateway/container/README.md) |
-| [lifecycle](lifecycle/README.md) | Slurm controller | prolog / epilog hooks and the observer |
+| [compose/master](compose/master) | Container master | Docker Compose stack (Caddy, master, RustFS), `init.sh`, `add-cluster.sh`, and `Caddyfile` |
+| [compose/slave](compose/slave) | Every cluster | Docker Compose stack for the slave agent, `init.sh`, `slave.yml.example`, and a demo OpenLDAP profile |
+| [docker](docker) | Both Compose stacks | `master.Dockerfile` (server + web bundle) and `slave.Dockerfile` (slave + host bridge) |
+| [worker](worker) | SaaS master | Cloudflare Worker runtime bridges, `build.sh`, `wrangler.example.toml`, smoke test, and GitHub OAuth connector script |
+| [certs](certs) | Container master | `issue.sh` for managing the private mTLS CA, master sync certificate, and cluster client certificates |
+| [slave](slave) | Non-container slaves | `slurm-portal-slave.service` systemd unit |
+| [triggers](triggers/README.md) | Slaves | `slurm_trigger.py` (manages Slurm associations and storage hooks on user events), SSH host bridge dispatcher, and config examples |
+| [storage](storage/README.md) | Login and compute nodes | Home directory ACL reconciler, NFS trust-directory mount helper, and compute-node SSH lockdown script |
+| [gateway](gateway/README.md) | Login nodes | Web access gateway config template, systemd units, Nginx config, [ACME DNS-01 renewal](gateway/acme/README.md), and [single-container packaging](gateway/container/README.md) |
+| [lifecycle](lifecycle/README.md) | Slurm controller | `PrologSlurmctld` / `EpilogSlurmctld` hook scripts and `slurm-notify-observer` systemd unit |
 
-Installed host paths keep the project's former `go-ldap-admin` prefix
-(`/etc/go-ldap-admin/`, `/usr/local/libexec/go-ldap-admin/`) so existing clusters did not change.
+Host configuration and binary paths retain the historical `go-ldap-admin` prefix (`/etc/go-ldap-admin/` and `/usr/local/libexec/go-ldap-admin/`) to preserve compatibility with existing cluster installations.
 
-Every script with logic has a `test_*.py` next to it; CI runs them all.
+Every Python helper script with non-trivial logic has a companion `test_*.py` unit test suite that runs in CI.

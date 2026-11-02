@@ -1,16 +1,16 @@
 ## What and why
 
-<!-- What changes for users, admins or operators, and why. Link the issue if there is one. -->
+<!-- Describe what changes for users, administrators, or operators, and why. Link the related issue if there is one. -->
 
 ## How it was tested
 
 - [ ] `make check` passes
-- [ ] Tested by hand: <!-- browser, cluster, Cloudflare… say what you did -->
+- [ ] Tested by hand: <!-- browser, cluster, Cloudflare… describe what you verified -->
 
 ## Checklist
 
-- [ ] New routes declare a permission; errors use `apperr`
-- [ ] Schema changes are a new migration that runs on SQLite and D1
+- [ ] New routes declare an explicit permission; errors use `apperr`
+- [ ] Schema changes are added as a new migration that runs on both SQLite and D1
 - [ ] Exported code has doc comments; UI text goes through `t()` with an English translation
-- [ ] Docs updated (`docs/`, `deploy/` READMEs) if behaviour, settings or deployment changed
-- [ ] For `deploy/` changes on a running cluster: how to apply and how to roll back
+- [ ] Documentation updated (`docs/`, `deploy/` READMEs) if behavior, configuration, or deployment changed
+- [ ] For `deploy/` changes affecting a running cluster: upgrade and rollback steps are documented above

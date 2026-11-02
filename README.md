@@ -6,38 +6,25 @@
 ![Runs on](https://img.shields.io/badge/runs%20on-Cloudflare%20or%20Docker-F38020)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-Slurm Portal is the account and access centre for Slurm HPC clusters. One web portal manages
-the people who use several clusters: their accounts, groups, passwords and SSH certificates. A
-small agent on each cluster keeps that cluster's OpenLDAP and SSH trust in step. Users also get
-a browser terminal, file transfers between clusters, job e-mails and live cluster status.
+Slurm Portal manages user accounts, groups, and SSH access across multiple Slurm HPC clusters from a single web portal. A lightweight agent on each cluster syncs users and POSIX groups into that cluster's local OpenLDAP directory and updates its SSH trust files. Users also get a browser terminal, cross-cluster file transfers, job completion emails, and live cluster telemetry.
 
 ![Sign-in page](docs/images/login.png)
 
 ## Advantage
 
-- **One portal, every cluster.** Accounts, groups and SSH certificates are managed once and replicated to each cluster's own OpenLDAP. UIDs, GIDs and access stay consistent everywhere, and each cluster keeps working on its own if the portal is unreachable.
-- **Runs serverless or self-hosted.** The same Go codebase runs as WebAssembly on Cloudflare Workers (D1, R2, Access) with no servers to maintain, or in Docker Compose on your own host.
-- **Cheap and quiet.** Slaves check a tiny hash and download the snapshot only when it changes. Live cluster status is served straight from object storage, so an idle site costs next to nothing.
-
+- **One portal for every cluster.** Manage users, groups, and SSH certificates in one place and replicate them to each cluster's local OpenLDAP directory. UIDs, GIDs, and access rules stay consistent across your site, and each cluster keeps working independently if the portal is temporarily unreachable.
+- **Serverless or self-hosted.** Run the same Go codebase as WebAssembly on Cloudflare Workers (with D1, R2, and Cloudflare Access) with no servers to maintain, or self-host it with Docker Compose on Linux.
+- **Low overhead.** Cluster agents poll a compact snapshot hash and download the full snapshot only when data changes. Browsers fetch live cluster telemetry directly from object storage, keeping idle resource usage near zero.
 
 ## What it does
 
-- **Accounts and groups.** Users, POSIX groups, organisations and roles live in one place, and
-  every cluster's OpenLDAP follows them. UIDs and GIDs are allocated once and stay the same
-  everywhere.
-- **SSH certificates.** The portal is a certificate authority. Users log in to the clusters
-  with a key and a 30-day certificate the portal issues, instead of passwords, and revocation reaches every
-  login node through a KRL.
-- **Sign-in.** Users sign in with a password, GitHub (OAuth), or Cloudflare Access. Forgotten
-  passwords are reset with an e-mailed code. Only one-way hashes are stored.
-- **Web access.** A browser terminal, a file browser, and rsync transfers between clusters run
-  through a gateway on each login node, using 5-minute certificates.
-- **Status and usage.** It shows node states, free CPU, memory and GPU, the job queue, and 7-day
-  GPU usage per user, for every cluster on one page.
-- **Notifications.** Job-end, file-transfer and password-code e-mails go through SMTP or REST
-  mail providers, with pools, quotas and per-provider counts.
-- **Operations.** It provides a tamper-evident audit log, a diagnostics page that shows every
-  dependency's health, and roles that cannot grant more than their holder has.
+- **Accounts and groups.** Manage users, POSIX groups, organizations, and RBAC roles centrally while each cluster's OpenLDAP stays in sync. UIDs and GIDs are allocated once and remain consistent across all clusters.
+- **SSH certificates.** A built-in SSH certificate authority issues 30-day user certificates so users can log in with SSH keys instead of passwords. Certificate revocations reach every login node through an OpenSSH Key Revocation List (KRL).
+- **Sign-in.** Supports password login, GitHub OAuth, and Cloudflare Access. Users can reset forgotten passwords with an emailed verification code. Only one-way password hashes are stored.
+- **Web access.** A gateway on each login node provides a browser terminal, file browser, and cross-cluster `rsync` transfers over SSH using 5-minute user certificates.
+- **Status and usage.** Displays node states, available CPU, memory, and GPU capacity, the active job queue, and 7-day per-user GPU usage across all clusters on a single page.
+- **Notifications.** Sends job completion, file transfer, and password reset emails through SMTP or HTTP mail providers, with provider pools, quotas, and delivery counters.
+- **Operations.** Includes a hash-chained audit log, a dependency diagnostics view, and rank-constrained RBAC roles that prevent users from granting permissions they do not hold.
 
 | Console overview | Current resources |
 | --- | --- |
@@ -49,46 +36,40 @@ a browser terminal, file transfers between clusters, job e-mails and live cluste
 
 ![Architecture](docs/images/architecture.png)
 
-- **Master** is the portal. It runs one of two ways:
-  - **SaaS:** compiled to WebAssembly on a Cloudflare Worker, with D1, R2 and Cloudflare Access;
-  - **containers:** natively in Docker Compose, with SQLite, an S3 store and Caddy for HTTPS.
-- **Slave** runs once per cluster next to OpenLDAP, as a container. When the master's snapshot
-  changes, the slave downloads it over mutual TLS. It then:
-  - applies the difference to LDAP;
-  - writes the SSH trust files that sshd reads;
-  - runs local triggers, such as creating the user's Slurm account.
-- **Gateway** runs on a login node and carries the browser terminal, files and transfers.
-- **Lifecycle hook** runs from the Slurm controller's prolog and epilog and reports finished
-  jobs for e-mail and GPU accounting.
+- **Master** is the central portal and control plane. You can run it in two ways:
+  - **SaaS:** compiled to WebAssembly on Cloudflare Workers, backed by D1, R2, and Cloudflare Access.
+  - **Containers:** running natively in Docker Compose with SQLite, an S3-compatible store (RustFS), and Caddy for HTTPS.
+- **Slave** runs once per cluster alongside OpenLDAP. When the master's snapshot hash changes, the slave downloads the new snapshot over mutual TLS and:
+  - applies the user and group diff to OpenLDAP;
+  - writes the SSH CA public keys and revocation list read by `sshd`;
+  - runs local provisioning triggers, such as creating Slurm accounting associations and home directories.
+- **Gateway** runs on each login node and handles browser terminal sessions, file browsing, and transfers over SSH.
+- **Lifecycle hook** runs from the Slurm controller's `PrologSlurmctld` and `EpilogSlurmctld` hooks to report job events for email notifications and GPU usage accounting.
 
-Read [the architecture page](docs/dev/architecture.md) for the full picture, or open
-the [interactive diagram](https://ting-hiuyu.github.io/SlurmPortal/architecture.html).
+See the [architecture guide](docs/dev/architecture.md) for a detailed overview, or explore the [interactive architecture diagram](https://ting-hiuyu.github.io/SlurmPortal/architecture.html).
 
 ## Deploy
 
-The [deployment wiki](docs/deploy/README.md) goes from bare Ubuntu 24.04 servers to a working
-cluster: munge, Slurm, accounting, slurmrestd, OpenLDAP, sssd and NFS, then the portal. Already
-running Slurm with LDAP? Go straight to the portal:
+The [deployment wiki](docs/deploy/README.md) walks through setting up a full cluster from fresh Ubuntu 24.04 servers—covering Munge, Slurm, accounting, `slurmrestd`, OpenLDAP, SSSD, and NFS—before deploying the portal. If you already run Slurm with OpenLDAP, you can start directly with the portal guides:
 
-| | Guide |
+| Component | Guide |
 | --- | --- |
 | Master on Cloudflare (Worker, D1, R2, Access) | [Serverless master](docs/deploy/master-saas.md) |
 | Master in containers (Docker Compose: master, SQLite, RustFS, Caddy) | [Container master](docs/deploy/master-container.md) |
-| Slave on each cluster, for either master | [The slave](docs/deploy/slaves.md) |
-| Web terminal, job e-mail, GPU usage | [Optional parts](docs/deploy/optional.md) |
+| Slave agent on each cluster (works with either master) | [Cluster slave agent](docs/deploy/slaves.md) |
+| Web terminal, file browser, job emails, and GPU usage | [Optional parts](docs/deploy/optional.md) and [Web access gateway](docs/deploy/gateway.md) |
 
 ## Try it on one machine
 
-You need Docker with the Compose plugin. This starts a master, and a slave that writes to a demo
-OpenLDAP:
+With Docker and the Compose plugin installed, you can start a local master and a slave synced to a demo OpenLDAP container:
 
 ```sh
 git clone https://github.com/TING-HiuYu/SlurmPortal.git && cd SlurmPortal
 
 cd deploy/compose/master
-./init.sh localhost                      # prints the first admin's password
+./init.sh localhost                      # prints the initial admin password
 ./add-cluster.sh cluster1 "Cluster 1"
-docker compose up -d                     # then open https://localhost (accept Caddy's local CA)
+docker compose up -d                     # open https://localhost (accept Caddy's local CA)
 
 cd ../slave
 ./init.sh
@@ -96,7 +77,7 @@ cp ../master/secrets/clusters/cluster1/* secrets/
 openssl rand -base64 24 > secrets/ldap-password && chmod 600 secrets/*
 ```
 
-In `deploy/compose/slave/slave.yml`, set these values, then run `docker compose --profile demo up -d`:
+Update `deploy/compose/slave/slave.yml` with the settings below, then run `docker compose --profile demo up -d`:
 
 ```yaml
 master-url: https://localhost:8443
@@ -109,40 +90,34 @@ ldap:
   url: ldap://127.0.0.1:1389
 ```
 
-Accounts you create in the portal appear in the demo OpenLDAP within a minute.
+Any user account you create in the portal will sync to the demo OpenLDAP server within a minute.
 
 ## Develop
 
-You need Go 1.26 and Node.js 22.
+Building and testing from source requires Go 1.26 and Node.js 22:
 
 ```sh
 make check                               # gofmt, vet, Go tests, JS tests, web build, Wasm build
 ```
 
-[The development guide](docs/dev/development.md) shows how to run each part locally and lists the code
-conventions.
+See the [development guide](docs/dev/development.md) for local setup instructions and coding conventions.
 
 ## Documentation
 
-| Document | For |
+| Document | Contents |
 | --- | --- |
-| [Deployment](docs/deploy/README.md) | Choosing a master, and the three guides |
-| [Architecture](docs/dev/architecture.md) | Components, request pipeline, sync protocol, storage |
-| [Plugins](docs/dev/plugins.md) | The plugin system, every built-in plugin, writing a new one |
-| [Project layout](docs/dev/project-layout.md) | What lives where in this repository |
-| [Development](docs/dev/development.md) | Local setup, tests, conventions |
-| [Security model](docs/dev/security.md) | Authentication, authorization, machine identity, secrets |
-| [Operations](docs/deploy/operations.md) | Day-to-day tasks and troubleshooting |
+| [Deployment](docs/deploy/README.md) | Choosing a master runtime and step-by-step installation guides |
+| [Architecture](docs/dev/architecture.md) | System components, request pipeline, sync protocol, and storage layers |
+| [Plugins](docs/dev/plugins.md) | Plugin architecture, built-in plugins, and how to write new ones |
+| [Project layout](docs/dev/project-layout.md) | Directory structure of the repository |
+| [Development](docs/dev/development.md) | Local development setup, test suites, and code conventions |
+| [Security model](docs/dev/security.md) | Authentication, authorization, machine identity, and secret storage |
+| [Operations](docs/deploy/operations.md) | Routine administration, backups, key rotation, and troubleshooting |
 
 ## Acknowledgements
 
-Slurm Portal began as a fork of [go-ldap-admin](https://github.com/eryajf/go-ldap-admin) by
-[eryajf](https://github.com/eryajf) and its contributors. Its data model of users, groups and
-roles, its LDAP layout, its role-based permissions and the first console design all come from
-go-ldap-admin, and Slurm Portal still opens a go-ldap-admin database directly. The rewrite moved
-it to Cloudflare Workers and containers and added the cluster side, but go-ldap-admin is the
-bedrock it stands on. Thank you.
+Slurm Portal began as a fork of [go-ldap-admin](https://github.com/eryajf/go-ldap-admin) by [eryajf](https://github.com/eryajf) and its contributors. Its user, group, and role data model, LDAP schema layout, RBAC design, and initial web console all originated in `go-ldap-admin`, and Slurm Portal can still upgrade an existing `go-ldap-admin` v1 database in place. While v2 rewrote the application for Cloudflare Workers and containers and added the multi-cluster agents, `go-ldap-admin` remains the foundation of the project. Thank you to the original authors.
 
 ## License
 
-[Apache License 2.0](LICENSE), the same as go-ldap-admin.
+Licensed under the [Apache License 2.0](LICENSE), the same license as `go-ldap-admin`.

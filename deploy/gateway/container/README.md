@@ -1,37 +1,38 @@
 # Gateway container
 
-This image runs the gateway and nginx together, under supervisord, in one container. Use it when
-the login node has no systemd (for example when the login node is itself a container).
+This directory packages the web-access gateway and Nginx into a single container managed by `supervisord`. Use it when the cluster login node cannot run systemd units directly (for example, when the login node itself is a container).
 
 | File | Purpose |
 | --- | --- |
-| `Dockerfile` | Ubuntu with nginx, supervisor, the SSH client, screen and rsync; the gateway binary is copied in |
-| `prepare.py` | Builds a minimal build context (binary and scripts only, never keys) and renders the non-root nginx config |
-| `supervisord.conf`, `entrypoint.sh`, `exit-on-fatal.py` | Run nginx and the gateway; stop the container if either keeps failing |
-| `healthcheck.sh` | Container health check |
-| `compose.yaml.example` | How it runs |
+| `Dockerfile` | Ubuntu image containing Nginx, `supervisord`, OpenSSH client, `screen`, `rsync`, and the compiled gateway binary |
+| `prepare.py` | Stages a minimal Docker build context (binaries and scripts only, excluding private keys) and renders an unprivileged Nginx config |
+| `supervisord.conf`, `entrypoint.sh`, `exit-on-fatal.py` | Starts Nginx and the gateway, and terminates the container if either process repeatedly crashes |
+| `healthcheck.sh` | Container healthcheck script |
+| `compose.yaml.example` | Hardened Docker Compose service definition |
 
 ## How it runs
 
-The `compose.yaml.example` service is locked down:
+The service in `compose.yaml.example` runs with strict container hardening:
 
-- host network;
-- a fixed non-root UID (19033 by default);
-- read-only root filesystem, no capabilities, `no-new-privileges`;
-- no Docker socket.
+- shares the host network namespace (`network_mode: host`);
+- runs as a fixed non-root UID (`19033` by default);
+- uses a read-only root filesystem with all Linux capabilities dropped and `no-new-privileges` enabled;
+- never mounts the host Docker socket.
 
-It mounts these, read-only:
+It bind-mounts three host directories read-only:
 
-| Host path | Mounted at | Holds |
+| Host path | Container mount | Contents |
 | --- | --- | --- |
 | Config directory | `/etc/go-ldap-admin` | `web-access-gateway.yaml` and `web-access-gateway/nginx.conf` |
-| TLS directory | `/etc/go-ldap-admin-web-access-tls` | This site's HTTPS certificate and its own mTLS client certificate; never another site's keys |
-| Trust directory | `/etc/go-ldap-admin-trust` | The slave's published trust directory, so CA changes are seen at once |
+| TLS directory | `/etc/go-ldap-admin-web-access-tls` | The login node's public HTTPS certificate and its mTLS client key pair (never share keys from other sites) |
+| Trust directory | `/etc/go-ldap-admin-trust` | The slave agent's published SSH trust directory so CA and KRL updates take effect immediately |
 
-The gateway keeps its state in its own directory on local disk, owned by the gateway UID. It never
-mounts user HOMEs: file access goes through SSH as the user.
+Gateway runtime state is stored in a dedicated local directory owned by the gateway UID. User home directories are never mounted into the container; all terminal, file, and transfer operations connect over local SSH as the authenticated POSIX user.
 
-Keep each release in its own runtime directory; to roll back, run `docker compose up -d` in the
-previous one.
+Store each deployed release in its own versioned runtime directory on the host so you can roll back at any time by running `docker compose up -d` from the previous release directory.
 
-Run the tests with `python3 -m unittest test_prepare` in this directory.
+Run the preparation script unit tests from this directory:
+
+```sh
+python3 -m unittest test_prepare
+```

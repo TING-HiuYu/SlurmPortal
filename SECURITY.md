@@ -1,30 +1,23 @@
 # Security policy
 
-Slurm Portal manages accounts, passwords and SSH certificate authorities for HPC clusters, so
-security reports get priority.
+Because Slurm Portal manages POSIX accounts, passwords, and SSH certificate authorities for HPC clusters, security vulnerabilities are treated with high priority.
 
 ## Reporting a vulnerability
 
-Please **do not** open a public issue. Use GitHub's private vulnerability reporting:
-**Security → Report a vulnerability** on this repository. If that is not available to you,
-contact the maintainer ([@TING-HiuYu](https://github.com/TING-HiuYu)) privately first and ask
-for a secure channel.
+Please **do not** report security vulnerabilities in public GitHub issues. Use GitHub's private vulnerability reporting feature under **Security → Report a vulnerability** on this repository. If private reporting is unavailable to you, contact the maintainer ([@TING-HiuYu](https://github.com/TING-HiuYu)) privately to arrange a secure channel before sharing details.
 
-Include:
+Please include:
 
-- the affected component (portal, slave, gateway, lifecycle hook, deploy script) and commit;
-- steps to reproduce, or a proof of concept;
-- the impact as you understand it.
+- the affected component (portal master, slave, gateway, lifecycle hook, or deployment script) and the commit SHA;
+- clear steps to reproduce the issue or a working proof of concept;
+- your assessment of the potential impact.
 
-You will get an acknowledgement within 7 days. Please give a reasonable time for a fix before any
-public disclosure.
+You will receive an acknowledgment within 7 days. Please allow reasonable time for a fix to be developed and released before disclosing the issue publicly.
 
 ## Supported versions
 
-Only the current `main` branch is supported. go-ldap-admin v1 (tag `v1-final`) is retired and
-gets no fixes.
+Only the current `main` branch is supported with security updates. The legacy `go-ldap-admin` v1 release line (tag `v1-final`) is retired and no longer receives fixes.
 
 ## Scope
 
-How the system is protected is described in [docs/security.md](docs/dev/security.md). Problems in
-Cloudflare, OpenLDAP, OpenSSH or Slurm themselves should go to those projects.
+The security architecture and trust boundaries of Slurm Portal are documented in [docs/dev/security.md](docs/dev/security.md). Vulnerabilities in upstream dependencies or infrastructure—such as Cloudflare, OpenLDAP, OpenSSH, or Slurm itself—should be reported directly to those respective projects.

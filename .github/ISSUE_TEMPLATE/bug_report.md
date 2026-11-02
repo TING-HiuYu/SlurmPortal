@@ -5,7 +5,7 @@ labels: bug
 ---
 
 **What happened**
-What you did, what you expected, and what happened instead.
+Describe what you did, what you expected to happen, and what happened instead.
 
 **Where**
 - [ ] Portal (web app or API)
@@ -18,8 +18,7 @@ Cluster (if any):
 Commit or deployment date:
 
 **Evidence**
-Request ID from the error message, log lines or a screenshot. Remove secrets, tokens and other
-people's personal data.
+Include the request ID from the error message, relevant log lines, or a screenshot. Redact all secrets, tokens, and personal data before posting.
 
 **Steps to reproduce**
 1.
