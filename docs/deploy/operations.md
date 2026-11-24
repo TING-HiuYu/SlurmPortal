@@ -66,7 +66,7 @@ Work through the pipeline in order:
 | **User session signing keys (`JWT_KEYS`)** | Append a new `kid:base64` entry to `JWT_KEYS`, switch `JWT_ACTIVE_KID` to the new `kid`, and redeploy. Remove the old key after `auth.token-ttl` (default 12 h) has elapsed. |
 | **Slave or gateway mTLS client certificate** | Issue a new client certificate, append its SHA-256 fingerprint to `SYNC_CLIENT_FINGERPRINTS` and update `CLUSTERS` / `WEB_ACCESS_CONFIG` on the master, redeploy the master, and then replace the `.crt`/`.key` files on the agent. |
 | **Gateway ticket signing key (`PLUGIN_WEB_ACCESS_TICKET_KEY`)** | Generate a new Ed25519 seed under a new `ticket-key-id`, add its public key to `ticket_public_keys` on every gateway (`systemctl reload web-access-gateway`), then update the master's `PLUGIN_WEB_ACCESS_TICKET_KEY` and `ticket-key-id`. |
-| **SSH user certificates** | Valid for 30 days. Users can issue a fresh certificate anytime under **Certificates & credentials**, or administrators can rotate/revoke them under **Users**. Revocations propagate via `revoked.krl` on the next sync. |
+| **SSH user certificates** | Valid for 30 days by default (configurable via `PKI_SSH_USER_TTL` / `pki.ssh-user-ttl`, as is `PKI_X509_USER_TTL` for 1-year X.509 user certs). Users can issue a fresh certificate anytime under **Certificates & credentials**, or administrators can rotate/revoke them under **Users**. Revocations propagate via `revoked.krl` on the next sync. |
 | **Master encryption key (`PKI_MASTER_KEY`)** | **Do not change without re-encrypting all sealed database rows.** Keep a secure offline backup of this key. |
 
 ## Backups and recovery

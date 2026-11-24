@@ -27,9 +27,9 @@ const (
 	KindX509 = "x509"
 	KindSSH  = "ssh"
 
-	crlLifetime     = 48 * time.Hour
-	sshUserLifetime = 30 * 24 * time.Hour
-	x509UserYears   = 1
+	crlLifetime             = 48 * time.Hour
+	defaultSSHUserLifetime  = 30 * 24 * time.Hour
+	defaultX509UserLifetime = 365 * 24 * time.Hour
 
 	ReasonUnspecified = 0
 	ReasonSuperseded  = 4
@@ -82,6 +82,9 @@ type Service struct {
 	DB  store.Store
 	key []byte
 	Now func() time.Time
+	// SSHUserTTL and X509UserTTL override user certificate lifetimes; zero falls back to 30 days and 365 days.
+	SSHUserTTL  time.Duration
+	X509UserTTL time.Duration
 }
 
 // New verifies the master key can open every stored CA so a wrong key fails at startup, not at first use.
@@ -119,6 +122,20 @@ func New(ctx context.Context, db store.Store, encodedMasterKey string) (*Service
 func (s *Service) Ready() bool { return len(s.key) == 32 }
 
 func (s *Service) now() time.Time { return s.Now().UTC() }
+
+func (s *Service) sshUserLifetime() time.Duration {
+	if s.SSHUserTTL > 0 {
+		return s.SSHUserTTL
+	}
+	return defaultSSHUserLifetime
+}
+
+func (s *Service) x509UserLifetime() time.Duration {
+	if s.X509UserTTL > 0 {
+		return s.X509UserTTL
+	}
+	return defaultX509UserLifetime
+}
 
 const caColumns = `id, name, COALESCE(kind,'x509'), certificate_pem, COALESCE(private_key_ciphertext,''), COALESCE(crl_pem,''),
 	COALESCE(crl_number,0), COALESCE(enabled,0), COALESCE(CAST(created_at AS TEXT),'')`

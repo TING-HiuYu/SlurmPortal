@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -28,6 +29,7 @@ type Config struct {
 	Sync      Sync        `yaml:"sync"`
 	// Audit can only be turned on (config or AUDIT_ENABLED); nothing turns it off at runtime.
 	Audit   Audit   `yaml:"audit"`
+	PKI     PKI     `yaml:"pki"`
 	Plugins Plugins `yaml:"plugins"`
 	// Clusters are the slave sites allowed to report status; each fingerprint must also be a sync peer.
 	Clusters plugin.Clusters `yaml:"clusters"`
@@ -78,6 +80,12 @@ type Audit struct {
 	MaxRecords int64 `yaml:"max-records"`
 }
 
+// PKI configures lifetimes for user certificates issued by built-in CAs.
+type PKI struct {
+	SSHUserTTL  time.Duration `yaml:"ssh-user-ttl"`
+	X509UserTTL time.Duration `yaml:"x509-user-ttl"`
+}
+
 // Sync configures how master serves snapshots to slaves and announces their hash over DNS.
 type Sync struct {
 	Listen           string   `yaml:"listen"`
@@ -113,6 +121,10 @@ func defaults() Config {
 		Auth:      Auth{Issuer: "slurm-portal", Audience: "slurm-portal-api", TokenTTL: 12 * time.Hour},
 		DB:        DB{Driver: "sqlite", DSN: "file:data/slurm-portal.db?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)"},
 		Directory: Directory{DefaultShell: "/bin/bash"},
+		PKI: PKI{
+			SSHUserTTL:  30 * 24 * time.Hour,
+			X509UserTTL: 365 * 24 * time.Hour,
+		},
 	}
 	c.Telemetry.SampleRatio = 1
 	return c
@@ -217,6 +229,18 @@ func applyEnv(c *Config, getenv func(string) string) error {
 		}
 		c.Audit.MaxRecords = n
 	}
+	for env, dst := range map[string]*time.Duration{
+		"PKI_SSH_USER_TTL":  &c.PKI.SSHUserTTL,
+		"PKI_X509_USER_TTL": &c.PKI.X509UserTTL,
+	} {
+		if v := getenv(env); v != "" {
+			d, err := parseDuration(v)
+			if err != nil {
+				return fmt.Errorf("%s: %w", env, err)
+			}
+			*dst = d
+		}
+	}
 	keys, err := parseKeys(getenv("JWT_KEYS"))
 	if err != nil {
 		return err
@@ -249,6 +273,23 @@ func applyEnv(c *Config, getenv func(string) string) error {
 		}
 	}
 	return nil
+}
+
+// parseDuration parses a Go duration string or an integer day count ending in "d" (e.g. "365d").
+func parseDuration(v string) (time.Duration, error) {
+	v = strings.TrimSpace(v)
+	if strings.HasSuffix(v, "d") {
+		days, err := strconv.ParseInt(strings.TrimSuffix(v, "d"), 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		const maxDays = math.MaxInt64 / int64(24*time.Hour)
+		if days > maxDays || days < -maxDays {
+			return 0, errors.New("duration overflows int64")
+		}
+		return time.Duration(days) * 24 * time.Hour, nil
+	}
+	return time.ParseDuration(v)
 }
 
 // parseKeys reads "kid:base64,kid2:base64"; keys never come from the YAML file.
@@ -286,6 +327,13 @@ func (c *Config) Validate() error {
 	}
 	if c.Auth.TokenTTL <= 0 || c.Auth.TokenTTL > 7*24*time.Hour {
 		return errors.New("auth.token-ttl must be within (0, 168h]")
+	}
+	const maxUserCertTTL = 10 * 365 * 24 * time.Hour
+	if c.PKI.SSHUserTTL <= 0 || c.PKI.SSHUserTTL > maxUserCertTTL {
+		return errors.New("pki.ssh-user-ttl must be within (0, 87600h]")
+	}
+	if c.PKI.X509UserTTL <= 0 || c.PKI.X509UserTTL > maxUserCertTTL {
+		return errors.New("pki.x509-user-ttl must be within (0, 87600h]")
 	}
 	if err := c.Clusters.Validate(); err != nil {
 		return err

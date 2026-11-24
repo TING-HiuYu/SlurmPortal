@@ -377,3 +377,136 @@ func TestHTTPAndDeactivationHook(t *testing.T) {
 		t.Fatal("certificate not revoked when user disabled")
 	}
 }
+
+func TestUserCertificateLifetimes(t *testing.T) {
+	ctx := context.Background()
+	fixed := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	s, db := newService(t)
+	s.Now = func() time.Time { return fixed }
+
+	sshCA, _, err := s.GenerateSSH(ctx, "ssh-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	x509CA, _, err := s.GenerateX509(ctx, "x509-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	alice := testutil.User(t, db, "alice", 1)
+	bob := testutil.User(t, db, "bob", 1)
+
+	parseSSHCert := func(pemStr string) *ssh.Certificate {
+		t.Helper()
+		pub, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pemStr))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pub.(*ssh.Certificate)
+	}
+	parseX509Cert := func(pemStr string) *x509.Certificate {
+		t.Helper()
+		b, _ := pem.Decode([]byte(pemStr))
+		if b == nil {
+			t.Fatal("missing certificate PEM")
+		}
+		c, err := x509.ParseCertificate(b.Bytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+
+	defSSH, err := s.Assign(ctx, alice, sshCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert := parseSSHCert(defSSH.CertificatePEM)
+	if got, want := cert.ValidAfter, uint64(fixed.Add(-5*time.Minute).Unix()); got != want {
+		t.Fatalf("default SSH ValidAfter = %d, want %d", got, want)
+	}
+	if got, want := cert.ValidBefore, uint64(fixed.Add(30*24*time.Hour).Unix()); got != want {
+		t.Fatalf("default SSH ValidBefore = %d, want %d", got, want)
+	}
+
+	defX509, err := s.Assign(ctx, bob, x509CA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseX509Cert(defX509.CertificatePEM).NotAfter, fixed.Add(365*24*time.Hour); !got.Equal(want) {
+		t.Fatalf("default X.509 NotAfter = %v, want %v", got, want)
+	}
+
+	s.SSHUserTTL = 365 * 24 * time.Hour
+	s.X509UserTTL = 180 * 24 * time.Hour
+
+	rotSSH, err := s.Rotate(ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseSSHCert(rotSSH.CertificatePEM).ValidBefore, uint64(fixed.Add(365*24*time.Hour).Unix()); got != want {
+		t.Fatalf("configured SSH ValidBefore = %d, want %d", got, want)
+	}
+
+	rotX509, err := s.Rotate(ctx, bob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseX509Cert(rotX509.CertificatePEM).NotAfter, fixed.Add(180*24*time.Hour); !got.Equal(want) {
+		t.Fatalf("configured X.509 NotAfter = %v, want %v", got, want)
+	}
+
+	// Verify X.509 leaf NotAfter is clamped to a short-lived issuing CA's NotAfter.
+	caLimit := fixed.Add(30 * 24 * time.Hour)
+	k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(42), Subject: pkix.Name{CommonName: "short-ca"},
+		NotBefore: fixed.Add(-time.Hour), NotAfter: caLimit,
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+	}
+	der, _ := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &k.PublicKey, k)
+	privDER, _ := x509.MarshalPKCS8PrivateKey(k)
+	shortCA, err := s.ImportX509(ctx, "short-ca",
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
+		pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privDER}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	carol := testutil.User(t, db, "carol", 1)
+	clamped, err := s.Assign(ctx, carol, shortCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parseX509Cert(clamped.CertificatePEM).NotAfter; !got.Equal(caLimit) {
+		t.Fatalf("clamped X.509 NotAfter = %v, want %v", got, caLimit)
+	}
+
+	// Verify end-to-end wiring from config.Config through app.New.
+	db2 := testutil.DB(t)
+	uid := testutil.User(t, db2, "dave", 1)
+	cfg := &config.Config{
+		Role: "master", HTTP: config.HTTP{RatePerSecond: 1e6, RateBurst: 1e6},
+		Auth:         config.Auth{Issuer: "i", Audience: "a", TokenTTL: time.Hour},
+		JWTKeys:      authn.Keyring{ActiveKID: "k", Keys: map[string][]byte{"k": []byte("0123456789abcdef0123456789abcdef")}},
+		PKIMasterKey: masterKey,
+		PKI:          config.PKI{SSHUserTTL: 365 * 24 * time.Hour, X509UserTTL: 180 * 24 * time.Hour},
+	}
+	a, err := app.New(ctx, cfg, db2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.PKI.SSHUserTTL != 365*24*time.Hour || a.PKI.X509UserTTL != 180*24*time.Hour {
+		t.Fatalf("wired TTLs = (%v, %v)", a.PKI.SSHUserTTL, a.PKI.X509UserTTL)
+	}
+	a.PKI.Now = func() time.Time { return fixed }
+	appCA, _, err := a.PKI.GenerateSSH(ctx, "app-ssh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	appIssued, err := a.PKI.Assign(ctx, uid, appCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseSSHCert(appIssued.CertificatePEM).ValidBefore, uint64(fixed.Add(365*24*time.Hour).Unix()); got != want {
+		t.Fatalf("app-wired SSH ValidBefore = %d, want %d", got, want)
+	}
+}
