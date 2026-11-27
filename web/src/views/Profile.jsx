@@ -5,7 +5,8 @@ import { DownloadOutlined, ReloadOutlined, UserOutlined } from "@ant-design/icon
 import PageHead from "../components/PageHead.jsx";
 import { get, post, put, errorText, ApiError } from "../api/client.js";
 import { load, useSession } from "../session.js";
-import { download, useConfirm } from "../hooks.js";
+import { useConfirm } from "../hooks.js";
+import { downloadCertificate, downloadCertificateBundle } from "../certificate.js";
 import { time } from "../format.js";
 import { t } from "../i18n.js";
 
@@ -50,9 +51,16 @@ export default function Profile({ page }) {
 
   const loadCert = async () => {
     try {
-      setCert(await get("/api/v2/me/certificate"));
+      const next = await get("/api/v2/me/certificate");
+      setCert(next);
+      setIssued((cur) => (cur && cur.serialHex === next?.serialHex ? cur : null));
     } catch (e) {
-      if (!(e instanceof ApiError && e.status === 404)) message.error(errorText(e));
+      if (e instanceof ApiError && e.status === 404) {
+        setCert(null);
+        setIssued(null);
+      } else {
+        message.error(errorText(e));
+      }
     }
   };
   useEffect(() => {
@@ -74,6 +82,7 @@ export default function Profile({ page }) {
       const out = await post("/api/v2/me/certificate");
       setIssued(out);
       setCert(out);
+      get("/api/v2/me/certificate").then(setCert).catch(() => {});
     });
   };
 
@@ -171,12 +180,16 @@ export default function Profile({ page }) {
                 <pre className="secret mono">{cert.certificatePem}</pre>
               </>
             ) : <Empty description={t("尚未签发证书")} />}
-            {issued && <Alert type="warning" showIcon style={{ marginTop: 18 }} title={t("私钥只显示这一次，请立即下载并妥善保存")} />}
+            {issued && <Alert type="warning" showIcon style={{ marginTop: 18 }} title={t("私钥仅在本次签发时提供，请立即下载证书压缩包并妥善保存")} />}
             <Space style={{ marginTop: 18 }}>
-              {cert && <Button icon={<DownloadOutlined />} onClick={() => download(cert.certificatePem, `${user.username}-certificate.pem`)}>{t("下载证书")}</Button>}
-              {issued
-                ? <Button type="primary" icon={<DownloadOutlined />} onClick={() => download(issued.privateKeyPem, `${user.username}-private-key.pem`)}>{t("下载私钥")}</Button>
-                : <Button type="primary" onClick={issue}>{cert ? t("重新签发") : t("签发证书")}</Button>}
+              {issued ? (
+                <Button type="primary" icon={<DownloadOutlined />} onClick={() => downloadCertificateBundle(user.username, issued)}>{t("下载证书")}</Button>
+              ) : (
+                <>
+                  {cert && <Button icon={<DownloadOutlined />} onClick={() => downloadCertificate(user.username, cert)}>{t("下载证书")}</Button>}
+                  <Button type="primary" onClick={issue}>{cert ? t("重新签发") : t("签发证书")}</Button>
+                </>
+              )}
             </Space>
           </>
         )}
