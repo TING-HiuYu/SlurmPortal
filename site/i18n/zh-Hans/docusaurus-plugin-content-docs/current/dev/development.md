@@ -56,6 +56,7 @@ API_ORIGIN=http://127.0.0.1:8080 npm run dev    # opens http://localhost:5173
 | `DB_DSN` | 原生 SQLite 数据库文件路径或连接串 |
 | `JWT_KEYS`、`JWT_ACTIVE_KID` | 会话令牌签名密钥列表（`kid:base64,kid2:base64`）及当前用于签名的 `kid` |
 | `PKI_MASTER_KEY` | 32 字节随机数的 Base64，用于加密封存 CA 私钥与服务商凭据 |
+| `PKI_SSH_USER_TTL`、`PKI_X509_USER_TTL` | 用户证书有效期（默认分别为 `30d` 与 `365d`；支持 Go duration 或 `Nd` 天数写法，上限 `10y`） |
 | `AUTH_ISSUER`、`AUTH_AUDIENCE` | 会话令牌的 `iss` 与 `aud` 声明值 |
 | `LDAP_BASE_DN`、`LDAP_USER_DN` | 快照中输出的默认 LDAP 目录后缀与用户分支 |
 | `AUDIT_ENABLED`、`AUDIT_MAX_RECORDS` | 审计日志开关及最大保留记录数 |

@@ -5,6 +5,7 @@ import PageHead from "../../components/PageHead.jsx";
 import SecretModal from "../../components/SecretModal.jsx";
 import { get, post, put, patch, del, errorText } from "../../api/client.js";
 import { can } from "../../session.js";
+import { downloadCertificateBundle } from "../../certificate.js";
 import { list, useConfirm } from "../../hooks.js";
 import { time } from "../../format.js";
 import { t } from "../../i18n.js";
@@ -115,7 +116,13 @@ export default function Users() {
     setSelected([]);
     load();
   };
-  const showKey = (row, issued) => setSecret({ open: true, title: t("{0} 的私钥（只显示一次）", row.username), text: issued.privateKeyPem, filename: `${row.username}-private-key.pem` });
+  const showKey = (row, issued) => setSecret({
+    open: true,
+    title: t("{0} 的证书与私钥（只显示一次）", row.username),
+    text: issued.privateKeyPem,
+    downloadLabel: t("下载证书"),
+    onDownload: () => downloadCertificateBundle(row.username, issued),
+  });
   const more = async (key, row) => {
     try {
       if (key === "reset") {

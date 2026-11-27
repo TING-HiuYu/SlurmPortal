@@ -72,10 +72,11 @@ export function useConfirm() {
   );
 }
 
-export function download(text, filename, type = "application/x-pem-file") {
+export function download(data, filename, type = "application/x-pem-file") {
+  const url = URL.createObjectURL(new Blob([data], { type }));
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

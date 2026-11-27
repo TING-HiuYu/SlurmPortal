@@ -56,6 +56,7 @@ To test the complete multi-container stack on a single machine (Caddy, master, R
 | `DB_DSN` | SQLite database file path or DSN |
 | `JWT_KEYS`, `JWT_ACTIVE_KID` | Session token signing keys (`kid1:base64,kid2:base64`) and the active signing key ID |
 | `PKI_MASTER_KEY` | Base64-encoded 32-byte master key used to seal CA private keys and provider secrets |
+| `PKI_SSH_USER_TTL`, `PKI_X509_USER_TTL` | User certificate lifetimes (`30d` and `365d` by default; Go durations or `Nd` days, up to `10y`) |
 | `AUTH_ISSUER`, `AUTH_AUDIENCE` | Expected `iss` and `aud` claims in session JWTs |
 | `LDAP_BASE_DN`, `LDAP_USER_DN` | Default LDAP directory suffix and user branch emitted in snapshots |
 | `AUDIT_ENABLED`, `AUDIT_MAX_RECORDS` | Enables the hash-chained audit log and sets its maximum row count |

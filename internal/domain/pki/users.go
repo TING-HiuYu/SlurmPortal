@@ -98,7 +98,7 @@ func (s *Service) issue(ca CA, username string) (Issued, error) {
 	}
 	serial := randomSerial(128)
 	leaf := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: username}, NotBefore: now.Add(-time.Minute),
-		NotAfter: now.AddDate(x509UserYears, 0, 0), KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}
+		NotAfter: now.Add(s.x509UserLifetime()), KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}
 	if leaf.NotAfter.After(cert.NotAfter) {
 		leaf.NotAfter = cert.NotAfter
 	}
@@ -134,7 +134,7 @@ func (s *Service) issueSSH(ca CA, username string) (Issued, error) {
 	now := s.now()
 	cert := &ssh.Certificate{
 		Key: pub, Serial: serial.Uint64(), CertType: ssh.UserCert, KeyId: username, ValidPrincipals: []string{username},
-		ValidAfter: uint64(now.Add(-5 * time.Minute).Unix()), ValidBefore: uint64(now.Add(sshUserLifetime).Unix()),
+		ValidAfter: uint64(now.Add(-5 * time.Minute).Unix()), ValidBefore: uint64(now.Add(s.sshUserLifetime()).Unix()),
 		Permissions: ssh.Permissions{Extensions: map[string]string{
 			"permit-pty": "", "permit-X11-forwarding": "", "permit-agent-forwarding": "", "permit-port-forwarding": "",
 		}},

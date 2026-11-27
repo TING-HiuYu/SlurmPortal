@@ -65,7 +65,7 @@
 | **会话签名密钥（`JWT_KEYS`）** | 在 `JWT_KEYS` 中追加新密钥并将 `JWT_ACTIVE_KID` 指向新密钥 ID，重新发布主服务；待旧令牌最长有效期过后移除旧密钥。 |
 | **Slave 或网关客户端证书** | 签发新证书，先在主服务（`wrangler.toml` 或容器主服务的 `.env`）中更新指纹白名单并重新发布，随后替换代理节点上的证书文件。 |
 | **网关票据签名密钥** | 先将新公钥加入所有网关的 `ticket_public_keys`，再更新主服务的 `PLUGIN_WEB_ACCESS_TICKET_KEY` 与 `web-access.ticket-key-id`。 |
-| **用户 SSH 证书** | 有效期 30 天，用户可在 **证书与凭据** 页面自助续期（或由管理员轮换）；吊销记录会在下一次同步时通过 KRL 送达 `sshd`。 |
+| **用户 SSH 证书** | 默认有效期 30 天（可通过 `PKI_SSH_USER_TTL` / `pki.ssh-user-ttl` 调整；X.509 用户证书默认 1 年，可通过 `PKI_X509_USER_TTL` 调整）。用户可在 **证书与凭据** 页面自助续期（或由管理员轮换）；吊销记录会在下一次同步时通过 KRL 送达 `sshd`。 |
 | **`PKI_MASTER_KEY`** | **请勿随意更换。** 数据库中封存的所有 CA 私钥与服务商密钥均依赖它解密，请务必做好离线备份。 |
 
 ## 备份与恢复 {#backups-and-recovery}

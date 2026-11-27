@@ -29,6 +29,9 @@ LDAP_USER_DN = "ou=people,dc=example,dc=org"
 AUDIT_ENABLED = "true"
 # Bounded audit log: past this many records each new one replaces the oldest (keeps D1 small).
 AUDIT_MAX_RECORDS = "200000"
+# Optional user certificate lifetimes (defaults: 30d for SSH, 365d for X.509; Go durations or Nd days).
+# PKI_SSH_USER_TTL = "365d"
+# PKI_X509_USER_TTL = "365d"
 # Machine endpoints (/sync/*) are served only on this hostname; browser paths are refused there.
 SYNC_HOSTNAME = "sync.portal.example.org"
 # Slaves read the snapshot hash from this TXT record; the CLOUDFLARE_API_TOKEN secret may edit it.

@@ -15,6 +15,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"math/big"
 	"net/http/httptest"
 	"strconv"
@@ -375,5 +376,239 @@ func TestHTTPAndDeactivationHook(t *testing.T) {
 	_ = store.QueryRow(context.Background(), db, "SELECT COUNT(*) FROM user_certificates WHERE user_id = ?", []any{alice}, &n)
 	if n != 0 {
 		t.Fatal("certificate not revoked when user disabled")
+	}
+}
+
+func TestUserCertificateLifetimes(t *testing.T) {
+	ctx := context.Background()
+	fixed := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	s, db := newService(t)
+	s.Now = func() time.Time { return fixed }
+
+	sshCA, _, err := s.GenerateSSH(ctx, "ssh-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	x509CA, _, err := s.GenerateX509(ctx, "x509-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	alice := testutil.User(t, db, "alice", 1)
+	bob := testutil.User(t, db, "bob", 1)
+
+	parseSSHCert := func(pemStr string) *ssh.Certificate {
+		t.Helper()
+		pub, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pemStr))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pub.(*ssh.Certificate)
+	}
+	parseX509Cert := func(pemStr string) *x509.Certificate {
+		t.Helper()
+		b, _ := pem.Decode([]byte(pemStr))
+		if b == nil {
+			t.Fatal("missing certificate PEM")
+		}
+		c, err := x509.ParseCertificate(b.Bytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+
+	defSSH, err := s.Assign(ctx, alice, sshCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert := parseSSHCert(defSSH.CertificatePEM)
+	if got, want := cert.ValidAfter, uint64(fixed.Add(-5*time.Minute).Unix()); got != want {
+		t.Fatalf("default SSH ValidAfter = %d, want %d", got, want)
+	}
+	if got, want := cert.ValidBefore, uint64(fixed.Add(30*24*time.Hour).Unix()); got != want {
+		t.Fatalf("default SSH ValidBefore = %d, want %d", got, want)
+	}
+
+	defX509, err := s.Assign(ctx, bob, x509CA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseX509Cert(defX509.CertificatePEM).NotAfter, fixed.Add(365*24*time.Hour); !got.Equal(want) {
+		t.Fatalf("default X.509 NotAfter = %v, want %v", got, want)
+	}
+
+	s.SSHUserTTL = 365 * 24 * time.Hour
+	s.X509UserTTL = 180 * 24 * time.Hour
+
+	rotSSH, err := s.Rotate(ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseSSHCert(rotSSH.CertificatePEM).ValidBefore, uint64(fixed.Add(365*24*time.Hour).Unix()); got != want {
+		t.Fatalf("configured SSH ValidBefore = %d, want %d", got, want)
+	}
+
+	rotX509, err := s.Rotate(ctx, bob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseX509Cert(rotX509.CertificatePEM).NotAfter, fixed.Add(180*24*time.Hour); !got.Equal(want) {
+		t.Fatalf("configured X.509 NotAfter = %v, want %v", got, want)
+	}
+
+	// Verify X.509 leaf NotAfter is clamped to a short-lived issuing CA's NotAfter.
+	caLimit := fixed.Add(30 * 24 * time.Hour)
+	k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(42), Subject: pkix.Name{CommonName: "short-ca"},
+		NotBefore: fixed.Add(-time.Hour), NotAfter: caLimit,
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+	}
+	der, _ := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &k.PublicKey, k)
+	privDER, _ := x509.MarshalPKCS8PrivateKey(k)
+	shortCA, err := s.ImportX509(ctx, "short-ca",
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
+		pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privDER}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	carol := testutil.User(t, db, "carol", 1)
+	clamped, err := s.Assign(ctx, carol, shortCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parseX509Cert(clamped.CertificatePEM).NotAfter; !got.Equal(caLimit) {
+		t.Fatalf("clamped X.509 NotAfter = %v, want %v", got, caLimit)
+	}
+
+	// Verify end-to-end wiring from config.Config through app.New.
+	db2 := testutil.DB(t)
+	uid := testutil.User(t, db2, "dave", 1)
+	cfg := &config.Config{
+		Role: "master", HTTP: config.HTTP{RatePerSecond: 1e6, RateBurst: 1e6},
+		Auth:         config.Auth{Issuer: "i", Audience: "a", TokenTTL: time.Hour},
+		JWTKeys:      authn.Keyring{ActiveKID: "k", Keys: map[string][]byte{"k": []byte("0123456789abcdef0123456789abcdef")}},
+		PKIMasterKey: masterKey,
+		PKI:          config.PKI{SSHUserTTL: 365 * 24 * time.Hour, X509UserTTL: 180 * 24 * time.Hour},
+	}
+	a, err := app.New(ctx, cfg, db2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.PKI.SSHUserTTL != 365*24*time.Hour || a.PKI.X509UserTTL != 180*24*time.Hour {
+		t.Fatalf("wired TTLs = (%v, %v)", a.PKI.SSHUserTTL, a.PKI.X509UserTTL)
+	}
+	a.PKI.Now = func() time.Time { return fixed }
+	appCA, _, err := a.PKI.GenerateSSH(ctx, "app-ssh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	appIssued, err := a.PKI.Assign(ctx, uid, appCA.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parseSSHCert(appIssued.CertificatePEM).ValidBefore, uint64(fixed.Add(365*24*time.Hour).Unix()); got != want {
+		t.Fatalf("app-wired SSH ValidBefore = %d, want %d", got, want)
+	}
+}
+
+type triggerRowsStore struct {
+	store.Store
+	beforeBatch func(ctx context.Context) error
+	forceZero   bool
+}
+
+func (s *triggerRowsStore) Batch(ctx context.Context, stmts []store.Statement) ([]store.Result, error) {
+	if s.beforeBatch != nil {
+		if err := s.beforeBatch(ctx); err != nil {
+			return nil, err
+		}
+	}
+	res, err := s.Store.Batch(ctx, stmts)
+	if err != nil {
+		return nil, err
+	}
+	for i := range res {
+		if res[i].RowsAffected > 0 {
+			res[i].RowsAffected++
+		}
+	}
+	if s.forceZero && len(res) > 0 {
+		res[len(res)-1].RowsAffected = 0
+	}
+	return res, nil
+}
+
+func TestRotateWithTriggerInflatedRowsAffected(t *testing.T) {
+	ctx := context.Background()
+	db := testutil.DB(t)
+	ts := &triggerRowsStore{Store: db}
+	s, err := pki.New(ctx, ts, masterKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ca, _, err := s.GenerateSSH(ctx, "ssh-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	uid := testutil.User(t, db, "alice", 1)
+	first, err := s.Assign(ctx, uid, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate D1 meta.changes = 2 when an AFTER UPDATE trigger modifies another table.
+	rotated, err := s.Rotate(ctx, uid)
+	if err != nil {
+		t.Fatalf("Rotate with trigger-inflated RowsAffected failed: %v", err)
+	}
+	if rotated.SerialHex == first.SerialHex {
+		t.Fatal("serial did not change on Rotate")
+	}
+	updatedCA, err := s.CA(ctx, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedCA.CRLNumber != 1 {
+		t.Fatalf("CRLNumber = %d, want 1 (must not retry when commit succeeded)", updatedCA.CRLNumber)
+	}
+	var revokedCount int
+	if err := store.QueryRow(ctx, db, "SELECT COUNT(*) FROM revoked_certificates WHERE certificate_authority_id = ?", []any{ca.ID}, &revokedCount); err != nil {
+		t.Fatal(err)
+	}
+	if revokedCount != 1 {
+		t.Fatalf("revoked_certificates count = %d, want 1", revokedCount)
+	}
+
+	// A single concurrent CRL advance causes a 0-row final UPDATE, retries once, and succeeds.
+	bumpedOnce := false
+	ts.beforeBatch = func(ctx context.Context) error {
+		if bumpedOnce {
+			return nil
+		}
+		bumpedOnce = true
+		_, err := db.Exec(ctx, "UPDATE certificate_authorities SET crl_number = crl_number + 1 WHERE id = ?", ca.ID)
+		return err
+	}
+	rotated2, err := s.Rotate(ctx, uid)
+	if err != nil {
+		t.Fatalf("Rotate retry after concurrent CRL bump failed: %v", err)
+	}
+	if rotated2.SerialHex == rotated.SerialHex {
+		t.Fatal("serial did not change after retry")
+	}
+	updatedCA2, err := s.CA(ctx, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedCA2.CRLNumber != 3 {
+		t.Fatalf("CRLNumber after external bump + retry = %d, want 3", updatedCA2.CRLNumber)
+	}
+
+	// Persistent 0-row final UPDATE exhausts retries and returns ErrChanged.
+	ts.beforeBatch = nil
+	ts.forceZero = true
+	if _, err := s.Rotate(ctx, uid); !errors.Is(err, pki.ErrChanged) {
+		t.Fatalf("persistent 0-row commit err = %v, want ErrChanged", err)
 	}
 }

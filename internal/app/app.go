@@ -145,6 +145,8 @@ func New(ctx context.Context, cfg *config.Config, db store.Store) (*App, error) 
 	if err != nil {
 		return nil, err
 	}
+	pkiService.SSHUserTTL = cfg.PKI.SSHUserTTL
+	pkiService.X509UserTTL = cfg.PKI.X509UserTTL
 	identityService.OnDeactivate = pkiService.RevokeUser
 	pkiService.Register(rt, identityService.CanManage)
 	replication.Register(rt, db, cfg.Directory.BaseDN)
