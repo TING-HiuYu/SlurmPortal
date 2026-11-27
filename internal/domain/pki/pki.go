@@ -377,12 +377,13 @@ func (s *Service) revokeStatements(ctx context.Context, ca CA, serial string, re
 }
 
 // commitGuarded runs a guarded batch; a zero-row final UPDATE means another writer advanced the CRL first.
+// Check == 0 (not != 1) because Cloudflare D1's meta.changes includes rows modified by SQLite triggers.
 func (s *Service) commitGuarded(ctx context.Context, stmts []store.Statement) error {
 	res, err := s.DB.Batch(ctx, stmts)
 	if err != nil {
 		return err
 	}
-	if res[len(res)-1].RowsAffected != 1 {
+	if res[len(res)-1].RowsAffected == 0 {
 		return ErrChanged
 	}
 	return nil

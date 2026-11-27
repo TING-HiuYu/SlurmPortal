@@ -15,6 +15,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"math/big"
 	"net/http/httptest"
 	"strconv"
@@ -508,5 +509,106 @@ func TestUserCertificateLifetimes(t *testing.T) {
 	}
 	if got, want := parseSSHCert(appIssued.CertificatePEM).ValidBefore, uint64(fixed.Add(365*24*time.Hour).Unix()); got != want {
 		t.Fatalf("app-wired SSH ValidBefore = %d, want %d", got, want)
+	}
+}
+
+type triggerRowsStore struct {
+	store.Store
+	beforeBatch func(ctx context.Context) error
+	forceZero   bool
+}
+
+func (s *triggerRowsStore) Batch(ctx context.Context, stmts []store.Statement) ([]store.Result, error) {
+	if s.beforeBatch != nil {
+		if err := s.beforeBatch(ctx); err != nil {
+			return nil, err
+		}
+	}
+	res, err := s.Store.Batch(ctx, stmts)
+	if err != nil {
+		return nil, err
+	}
+	for i := range res {
+		if res[i].RowsAffected > 0 {
+			res[i].RowsAffected++
+		}
+	}
+	if s.forceZero && len(res) > 0 {
+		res[len(res)-1].RowsAffected = 0
+	}
+	return res, nil
+}
+
+func TestRotateWithTriggerInflatedRowsAffected(t *testing.T) {
+	ctx := context.Background()
+	db := testutil.DB(t)
+	ts := &triggerRowsStore{Store: db}
+	s, err := pki.New(ctx, ts, masterKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ca, _, err := s.GenerateSSH(ctx, "ssh-ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+	uid := testutil.User(t, db, "alice", 1)
+	first, err := s.Assign(ctx, uid, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate D1 meta.changes = 2 when an AFTER UPDATE trigger modifies another table.
+	rotated, err := s.Rotate(ctx, uid)
+	if err != nil {
+		t.Fatalf("Rotate with trigger-inflated RowsAffected failed: %v", err)
+	}
+	if rotated.SerialHex == first.SerialHex {
+		t.Fatal("serial did not change on Rotate")
+	}
+	updatedCA, err := s.CA(ctx, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedCA.CRLNumber != 1 {
+		t.Fatalf("CRLNumber = %d, want 1 (must not retry when commit succeeded)", updatedCA.CRLNumber)
+	}
+	var revokedCount int
+	if err := store.QueryRow(ctx, db, "SELECT COUNT(*) FROM revoked_certificates WHERE certificate_authority_id = ?", []any{ca.ID}, &revokedCount); err != nil {
+		t.Fatal(err)
+	}
+	if revokedCount != 1 {
+		t.Fatalf("revoked_certificates count = %d, want 1", revokedCount)
+	}
+
+	// A single concurrent CRL advance causes a 0-row final UPDATE, retries once, and succeeds.
+	bumpedOnce := false
+	ts.beforeBatch = func(ctx context.Context) error {
+		if bumpedOnce {
+			return nil
+		}
+		bumpedOnce = true
+		_, err := db.Exec(ctx, "UPDATE certificate_authorities SET crl_number = crl_number + 1 WHERE id = ?", ca.ID)
+		return err
+	}
+	rotated2, err := s.Rotate(ctx, uid)
+	if err != nil {
+		t.Fatalf("Rotate retry after concurrent CRL bump failed: %v", err)
+	}
+	if rotated2.SerialHex == rotated.SerialHex {
+		t.Fatal("serial did not change after retry")
+	}
+	updatedCA2, err := s.CA(ctx, ca.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedCA2.CRLNumber != 3 {
+		t.Fatalf("CRLNumber after external bump + retry = %d, want 3", updatedCA2.CRLNumber)
+	}
+
+	// Persistent 0-row final UPDATE exhausts retries and returns ErrChanged.
+	ts.beforeBatch = nil
+	ts.forceZero = true
+	if _, err := s.Rotate(ctx, uid); !errors.Is(err, pki.ErrChanged) {
+		t.Fatalf("persistent 0-row commit err = %v, want ErrChanged", err)
 	}
 }

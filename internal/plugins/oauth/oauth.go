@@ -292,7 +292,7 @@ func (f *flow) complete(r *http.Request, res *result) error {
 	if err != nil {
 		return err
 	}
-	if used.RowsAffected != 1 {
+	if used.RowsAffected == 0 {
 		return errState
 	}
 	k, err := f.c.get(ctx, connectorID)
